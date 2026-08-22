@@ -1,16 +1,47 @@
-# React + Vite
+# Garden Journal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A private journal that grows into a garden.
 
-Currently, two official plugins are available:
+Write about your day, save your thoughts, and watch your garden slowly grow.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Concept
 
-## React Compiler
+Garden Journal combines journaling and gardening.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* Journal entries are private
+* Each saved entry adds a plant to your garden
+* Drafts are stored during the current session
+* Saved journal entries and garden state are stored locally
+* In the future, AI will analyze positive or meaningful expressions and turn them into water for your plants
+* The garden may be shared without sharing the journal itself
 
-## Expanding the ESLint configuration
+## Current Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* Write journal entries
+* Save unfinished drafts with `sessionStorage`
+* Save journal entries with `localStorage`
+* Generate plants from journal entries
+* Display plants in a 5 × 5 garden grid
+* Preserve the garden after reloading the page
+
+## Planned Features
+
+* AI-based journal analysis
+* Water and plant growth system
+* Pixel-art garden graphics
+* Private / public garden settings
+* Share only the garden while keeping journal entries private
+* Social features for visiting other gardens
+
+## Tech Stack
+
+* React
+* Vite
+* JavaScript
+* ESLint
+
+## Status
+
+Early development / prototype.
+
+The current goal is to build the smallest working version first, then gradually grow the garden experience.
