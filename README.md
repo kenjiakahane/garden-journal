@@ -15,6 +15,10 @@ Garden Journal combines journaling and gardening.
 * In the future, AI will analyze positive or meaningful expressions and turn them into water for your plants
 * The garden may be shared without sharing the journal itself
 
+## Demo
+
+https://garden-journal-taupe.vercel.app/
+
 ## Current Features
 
 * Write journal entries
