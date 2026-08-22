@@ -82,28 +82,28 @@ function App() {
           <div>
             {lastAnalysis.water > 0 ? (
               <>
-                <p>💧 +{lastAnalysis.water}</p>
+                <p>💧 Your words gave water to the garden.</p>
 
                 <ul>
                   {lastAnalysis.gratitude > 0 && (
-                    <li>Gratitude detected</li>
+                    <li>🌼 Gratitude was found in your words.</li>
                   )}
 
                   {lastAnalysis.kindness > 0 && (
-                    <li>Kindness detected</li>
+                    <li>🤝 Your words showed kindness.</li>
                   )}
 
                   {lastAnalysis.reflection > 0 && (
-                    <li>Reflection detected</li>
+                    <li>🌿 You reflected on your experience.</li>
                   )}
 
                   {lastAnalysis.growth > 0 && (
-                    <li>Growth detected</li>
+                    <li>🌱 Your words showed personal growth.</li>
                   )}
                 </ul>
               </>
             ) : (
-              <p>No water earned this time.</p>
+              <p>🌙 Your entry was saved. The garden is resting today.</p>
             )}
           </div>
         )}
