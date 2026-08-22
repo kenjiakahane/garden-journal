@@ -34,3 +34,20 @@ v0.1 is released when a third party can:
 2. Write a journal entry
 3. Save it
 4. See the garden change
+
+## Journal analysis
+
+AI should not simply judge whether an entry is positive or negative.
+
+It should evaluate:
+
+- gratitude
+- kindness
+- reflection
+- personal growth
+- helpfulness
+
+Example:
+"Today was terrible, but my colleague helped me. I'm grateful."
+
+This should still receive water because gratitude is present.
