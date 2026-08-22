@@ -18,10 +18,14 @@ export async function analyzeJournal(text) {
       : 0;
   }
 
+  const matchedCount = Object.values(scores).filter(
+    (score) => score > 0
+  ).length;
+
   const water =
-    Object.values(scores).some((score) => score > 0)
-      ? 1
-      : 0;
+    matchedCount >= 3 ? 2 :
+    matchedCount >= 1 ? 1 :
+    0;
 
   return {
     ...scores,
