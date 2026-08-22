@@ -22,17 +22,11 @@ function App() {
   }, [text]);
 
   useEffect(() => {
-    localStorage.setItem(
-      "journalEntries",
-      JSON.stringify(entries)
-    );
+    localStorage.setItem("journalEntries", JSON.stringify(entries));
   }, [entries]);
 
   useEffect(() => {
-    localStorage.setItem(
-      "gardenPlants",
-      JSON.stringify(plants)
-    );
+    localStorage.setItem("gardenPlants", JSON.stringify(plants));
   }, [plants]);
 
   const handleSave = () => {
@@ -47,24 +41,15 @@ function App() {
     };
 
     const randomPlant =
-      plantTypes[
-        Math.floor(Math.random() * plantTypes.length)
-      ];
+      plantTypes[Math.floor(Math.random() * plantTypes.length)];
 
     const newPlant = {
       id: entryId,
       type: randomPlant,
     };
 
-    setEntries((current) => [
-      newEntry,
-      ...current,
-    ]);
-
-    setPlants((current) => [
-      ...current,
-      newPlant,
-    ]);
+    setEntries((current) => [newEntry, ...current]);
+    setPlants((current) => [...current, newPlant]);
 
     setText("");
     sessionStorage.removeItem("journalDraft");
@@ -75,14 +60,38 @@ function App() {
       <h1>My Garden</h1>
 
       <section>
+        <h2>Garden</h2>
+
         {plants.length === 0 ? (
           <p>Your garden is empty.</p>
         ) : (
-          <div style={{ fontSize: "48px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 64px)",
+              gap: "8px",
+              padding: "16px",
+              backgroundColor: "#d9f0c7",
+              width: "fit-content",
+              borderRadius: "12px",
+            }}
+          >
             {plants.map((plant) => (
-              <span key={plant.id}>
+              <div
+                key={plant.id}
+                style={{
+                  width: "64px",
+                  height: "64px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "40px",
+                  backgroundColor: "#b7dc95",
+                  borderRadius: "8px",
+                }}
+              >
                 {plant.type}
-              </span>
+              </div>
             ))}
           </div>
         )}
@@ -96,9 +105,7 @@ function App() {
 
       <br />
 
-      <button onClick={handleSave}>
-        Save
-      </button>
+      <button onClick={handleSave}>Save</button>
 
       <h2>Journal</h2>
 
@@ -108,11 +115,8 @@ function App() {
         entries.map((entry) => (
           <article key={entry.id}>
             <small>
-              {new Date(
-                entry.createdAt
-              ).toLocaleString()}
+              {new Date(entry.createdAt).toLocaleString()}
             </small>
-
             <p>{entry.text}</p>
           </article>
         ))
