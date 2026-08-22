@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 
 function App() {
-  const plantTypes = ["🌱", "🌿", "🌷", "🌻", "🌳"];
-
   const [text, setText] = useState(() => {
     return sessionStorage.getItem("journalDraft") || "";
   });
@@ -12,9 +10,9 @@ function App() {
     return savedEntries ? JSON.parse(savedEntries) : [];
   });
 
-  const [plants, setPlants] = useState(() => {
-    const savedPlants = localStorage.getItem("gardenPlants");
-    return savedPlants ? JSON.parse(savedPlants) : [];
+  const [water, setWater] = useState(() => {
+    const savedWater = localStorage.getItem("water");
+    return savedWater ? Number(savedWater) : 0;
   });
 
   useEffect(() => {
@@ -29,32 +27,35 @@ function App() {
   }, [entries]);
 
   useEffect(() => {
-    localStorage.setItem(
-      "gardenPlants",
-      JSON.stringify(plants)
+    localStorage.setItem("water", water);
+  }, [water]);
+
+  const analyzeJournal = (journalText) => {
+    const positiveWords = [
+      "good",
+      "happy",
+      "thanks",
+      "thank you",
+      "grateful",
+      "helped",
+      "enjoyed",
+      "great",
+    ];
+
+    const lowerText = journalText.toLowerCase();
+
+    return positiveWords.some((word) =>
+      lowerText.includes(word)
     );
-  }, [plants]);
+  };
 
   const handleSave = () => {
     if (!text.trim()) return;
 
-    const entryId = Date.now();
-
     const newEntry = {
-      id: entryId,
+      id: Date.now(),
       text: text.trim(),
       createdAt: new Date().toISOString(),
-    };
-
-    const randomPlant =
-      plantTypes[
-        Math.floor(Math.random() * plantTypes.length)
-      ];
-
-    const newPlant = {
-      id: entryId,
-      type: randomPlant,
-      position: Math.floor(Math.random() * 25),
     };
 
     setEntries((current) => [
@@ -62,14 +63,22 @@ function App() {
       ...current,
     ]);
 
-    setPlants((current) => [
-      ...current,
-      newPlant,
-    ]);
+    const isPositive = analyzeJournal(text);
+
+    if (isPositive) {
+      setWater((current) => current + 1);
+    }
 
     setText("");
     sessionStorage.removeItem("journalDraft");
   };
+
+  const plant =
+    water >= 5
+      ? "🌷"
+      : water >= 2
+      ? "🌿"
+      : "🌱";
 
   return (
     <main>
@@ -78,41 +87,11 @@ function App() {
       <section>
         <h2>Garden</h2>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(5, 64px)",
-            gap: "8px",
-            padding: "16px",
-            backgroundColor: "#d9f0c7",
-            width: "fit-content",
-            borderRadius: "12px",
-          }}
-        >
-          {Array.from({ length: 25 }).map((_, index) => {
-            const plant = plants.find(
-              (plant) => plant.position === index
-            );
-
-            return (
-              <div
-                key={index}
-                style={{
-                  width: "64px",
-                  height: "64px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "40px",
-                  backgroundColor: "#b7dc95",
-                  borderRadius: "8px",
-                }}
-              >
-                {plant?.type}
-              </div>
-            );
-          })}
+        <div style={{ fontSize: "80px" }}>
+          {plant}
         </div>
+
+        <p>💧 Water: {water}</p>
       </section>
 
       <section>
@@ -144,7 +123,6 @@ function App() {
                   entry.createdAt
                 ).toLocaleString()}
               </small>
-
               <p>{entry.text}</p>
             </article>
           ))
