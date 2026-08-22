@@ -16,6 +16,8 @@ function App() {
     return savedWater ? Number(savedWater) : 0;
   });
 
+  const [lastAnalysis, setLastAnalysis] = useState(null);
+
   useEffect(() => {
     sessionStorage.setItem("journalDraft", text);
   }, [text]);
@@ -35,6 +37,7 @@ function App() {
     if (!text.trim()) return;
 
     const analysis = await analyzeJournal(text);
+    setLastAnalysis(analysis);
 
     const newEntry = {
       id: Date.now(),
@@ -75,6 +78,35 @@ function App() {
         </div>
 
         <p>💧 Water: {water}</p>
+        {lastAnalysis && (
+          <div>
+            {lastAnalysis.water > 0 ? (
+              <>
+                <p>💧 +{lastAnalysis.water}</p>
+
+                <ul>
+                  {lastAnalysis.gratitude > 0 && (
+                    <li>Gratitude detected</li>
+                  )}
+
+                  {lastAnalysis.kindness > 0 && (
+                    <li>Kindness detected</li>
+                  )}
+
+                  {lastAnalysis.reflection > 0 && (
+                    <li>Reflection detected</li>
+                  )}
+
+                  {lastAnalysis.growth > 0 && (
+                    <li>Growth detected</li>
+                  )}
+                </ul>
+              </>
+            ) : (
+              <p>No water earned this time.</p>
+            )}
+          </div>
+        )}
       </section>
 
       <section>
