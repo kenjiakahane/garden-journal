@@ -80,7 +80,11 @@ function App() {
         <p>💧 Water: {water}</p>
         {lastAnalysis && (
           <div>
-            {lastAnalysis.water > 0 ? (
+            {lastAnalysis.error ? (
+              <p>
+                🌙 Your entry was saved, but the garden could not analyze it this time.
+              </p>
+            ) : lastAnalysis.water > 0 ? (
               <>
                 <p>💧 Your words gave water to the garden.</p>
 
