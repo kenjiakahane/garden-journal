@@ -1,15 +1,10 @@
 import { useEffect, useState } from "react";
 
 function App() {
-  const plants = ["🌱", "🌿", "🌷", "🌳"];
+  const plantTypes = ["🌱", "🌿", "🌷", "🌻", "🌳"];
 
   const [text, setText] = useState(() => {
     return sessionStorage.getItem("journalDraft") || "";
-  });
-
-  const [stage, setStage] = useState(() => {
-    const savedStage = localStorage.getItem("gardenStage");
-    return savedStage ? Number(savedStage) : 0;
   });
 
   const [entries, setEntries] = useState(() => {
@@ -17,35 +12,59 @@ function App() {
     return savedEntries ? JSON.parse(savedEntries) : [];
   });
 
-  // 書きかけの日記をセッション保存
+  const [plants, setPlants] = useState(() => {
+    const savedPlants = localStorage.getItem("gardenPlants");
+    return savedPlants ? JSON.parse(savedPlants) : [];
+  });
+
   useEffect(() => {
     sessionStorage.setItem("journalDraft", text);
   }, [text]);
 
-  // 庭の成長状態を保存
   useEffect(() => {
-    localStorage.setItem("gardenStage", stage);
-  }, [stage]);
-
-  // 日記履歴を保存
-  useEffect(() => {
-    localStorage.setItem("journalEntries", JSON.stringify(entries));
+    localStorage.setItem(
+      "journalEntries",
+      JSON.stringify(entries)
+    );
   }, [entries]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "gardenPlants",
+      JSON.stringify(plants)
+    );
+  }, [plants]);
 
   const handleSave = () => {
     if (!text.trim()) return;
 
+    const entryId = Date.now();
+
     const newEntry = {
-      id: Date.now(),
+      id: entryId,
       text: text.trim(),
       createdAt: new Date().toISOString(),
     };
 
-    setEntries((current) => [newEntry, ...current]);
+    const randomPlant =
+      plantTypes[
+        Math.floor(Math.random() * plantTypes.length)
+      ];
 
-    setStage((current) =>
-      Math.min(current + 1, plants.length - 1)
-    );
+    const newPlant = {
+      id: entryId,
+      type: randomPlant,
+    };
+
+    setEntries((current) => [
+      newEntry,
+      ...current,
+    ]);
+
+    setPlants((current) => [
+      ...current,
+      newPlant,
+    ]);
 
     setText("");
     sessionStorage.removeItem("journalDraft");
@@ -55,9 +74,19 @@ function App() {
     <main>
       <h1>My Garden</h1>
 
-      <div style={{ fontSize: "80px" }}>
-        {plants[stage]}
-      </div>
+      <section>
+        {plants.length === 0 ? (
+          <p>Your garden is empty.</p>
+        ) : (
+          <div style={{ fontSize: "48px" }}>
+            {plants.map((plant) => (
+              <span key={plant.id}>
+                {plant.type}
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
 
       <textarea
         value={text}
@@ -79,8 +108,11 @@ function App() {
         entries.map((entry) => (
           <article key={entry.id}>
             <small>
-              {new Date(entry.createdAt).toLocaleString()}
+              {new Date(
+                entry.createdAt
+              ).toLocaleString()}
             </small>
+
             <p>{entry.text}</p>
           </article>
         ))
