@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { analyzeJournal } from "./services/analyzeJournal";
 
 function App() {
   const [text, setText] = useState(() => {
@@ -30,32 +31,16 @@ function App() {
     localStorage.setItem("water", water);
   }, [water]);
 
-  const analyzeJournal = (journalText) => {
-    const positiveWords = [
-      "good",
-      "happy",
-      "thanks",
-      "thank you",
-      "grateful",
-      "helped",
-      "enjoyed",
-      "great",
-    ];
-
-    const lowerText = journalText.toLowerCase();
-
-    return positiveWords.some((word) =>
-      lowerText.includes(word)
-    );
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!text.trim()) return;
+
+    const analysis = await analyzeJournal(text);
 
     const newEntry = {
       id: Date.now(),
       text: text.trim(),
       createdAt: new Date().toISOString(),
+      analysis,
     };
 
     setEntries((current) => [
@@ -63,10 +48,8 @@ function App() {
       ...current,
     ]);
 
-    const isPositive = analyzeJournal(text);
-
-    if (isPositive) {
-      setWater((current) => current + 1);
+    if (analysis.water > 0) {
+      setWater((current) => current + analysis.water);
     }
 
     setText("");
