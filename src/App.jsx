@@ -22,11 +22,17 @@ function App() {
   }, [text]);
 
   useEffect(() => {
-    localStorage.setItem("journalEntries", JSON.stringify(entries));
+    localStorage.setItem(
+      "journalEntries",
+      JSON.stringify(entries)
+    );
   }, [entries]);
 
   useEffect(() => {
-    localStorage.setItem("gardenPlants", JSON.stringify(plants));
+    localStorage.setItem(
+      "gardenPlants",
+      JSON.stringify(plants)
+    );
   }, [plants]);
 
   const handleSave = () => {
@@ -41,15 +47,25 @@ function App() {
     };
 
     const randomPlant =
-      plantTypes[Math.floor(Math.random() * plantTypes.length)];
+      plantTypes[
+        Math.floor(Math.random() * plantTypes.length)
+      ];
 
     const newPlant = {
       id: entryId,
       type: randomPlant,
+      position: Math.floor(Math.random() * 25),
     };
 
-    setEntries((current) => [newEntry, ...current]);
-    setPlants((current) => [...current, newPlant]);
+    setEntries((current) => [
+      newEntry,
+      ...current,
+    ]);
+
+    setPlants((current) => [
+      ...current,
+      newPlant,
+    ]);
 
     setText("");
     sessionStorage.removeItem("journalDraft");
@@ -62,23 +78,25 @@ function App() {
       <section>
         <h2>Garden</h2>
 
-        {plants.length === 0 ? (
-          <p>Your garden is empty.</p>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, 64px)",
-              gap: "8px",
-              padding: "16px",
-              backgroundColor: "#d9f0c7",
-              width: "fit-content",
-              borderRadius: "12px",
-            }}
-          >
-            {plants.map((plant) => (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 64px)",
+            gap: "8px",
+            padding: "16px",
+            backgroundColor: "#d9f0c7",
+            width: "fit-content",
+            borderRadius: "12px",
+          }}
+        >
+          {Array.from({ length: 25 }).map((_, index) => {
+            const plant = plants.find(
+              (plant) => plant.position === index
+            );
+
+            return (
               <div
-                key={plant.id}
+                key={index}
                 style={{
                   width: "64px",
                   height: "64px",
@@ -90,37 +108,48 @@ function App() {
                   borderRadius: "8px",
                 }}
               >
-                {plant.type}
+                {plant?.type}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </section>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Write about your day..."
-      />
+      <section>
+        <h2>Write Journal</h2>
 
-      <br />
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Write about your day..."
+        />
 
-      <button onClick={handleSave}>Save</button>
+        <br />
 
-      <h2>Journal</h2>
+        <button onClick={handleSave}>
+          Save
+        </button>
+      </section>
 
-      {entries.length === 0 ? (
-        <p>No entries yet.</p>
-      ) : (
-        entries.map((entry) => (
-          <article key={entry.id}>
-            <small>
-              {new Date(entry.createdAt).toLocaleString()}
-            </small>
-            <p>{entry.text}</p>
-          </article>
-        ))
-      )}
+      <section>
+        <h2>Journal</h2>
+
+        {entries.length === 0 ? (
+          <p>No entries yet.</p>
+        ) : (
+          entries.map((entry) => (
+            <article key={entry.id}>
+              <small>
+                {new Date(
+                  entry.createdAt
+                ).toLocaleString()}
+              </small>
+
+              <p>{entry.text}</p>
+            </article>
+          ))
+        )}
+      </section>
     </main>
   );
 }
