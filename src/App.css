@@ -112,8 +112,8 @@ header {
 .settings-trigger {
   border: 1px solid var(--card-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #5f675f;
+  background: #fff;
+  color: #425042;
   font: inherit;
   font-size: 12px;
   padding: 6px 10px;

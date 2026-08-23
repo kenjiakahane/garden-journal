@@ -15,6 +15,7 @@ const GARDEN_ROWS = 6;
 
 const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺"];
 const GARDEN_STATE_KEY = "gardenState";
+const WATER_STORAGE_KEY = "water";
 const USER_NAME_STORAGE_KEY = "gardenJournalUserName";
 const MAX_USER_NAME_LENGTH = 30;
 const TABS = {
@@ -870,7 +871,7 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [water, setWater] = useState(() => {
-    const saved = localStorage.getItem("water");
+    const saved = localStorage.getItem(WATER_STORAGE_KEY);
     return saved ? Number(saved) : 0;
   });
   const [userName, setUserName] = useState(() => {
@@ -891,12 +892,15 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetFeedback, setResetFeedback] = useState("");
+  const resetDialogRef = useRef(null);
+  const resetCancelButtonRef = useRef(null);
+  const lastFocusedElementRef = useRef(null);
   const t = translations[language];
   const locale = LOCALES[language];
 
   useEffect(() => { sessionStorage.setItem("journalDraft", text); }, [text]);
   useEffect(() => { localStorage.setItem("journalEntries", JSON.stringify(entries)); }, [entries]);
-  useEffect(() => { localStorage.setItem("water", water); }, [water]);
+  useEffect(() => { localStorage.setItem(WATER_STORAGE_KEY, water); }, [water]);
   useEffect(() => { localStorage.setItem(GARDEN_STATE_KEY, JSON.stringify(gardenState)); }, [gardenState]);
   useEffect(() => { localStorage.setItem(LANGUAGE_STORAGE_KEY, language); }, [language]);
   useEffect(() => {
@@ -928,11 +932,41 @@ function App() {
   }, [resetFeedback]);
   useEffect(() => {
     if (!showResetDialog) return undefined;
+    lastFocusedElementRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const frame = requestAnimationFrame(() => {
+      resetCancelButtonRef.current?.focus();
+    });
     const onKeyDown = (event) => {
       if (event.key === "Escape") setShowResetDialog(false);
+      if (event.key !== "Tab" || !resetDialogRef.current) return;
+      const focusable = resetDialogRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      const focusableElements = Array.from(focusable).filter((element) => !element.hasAttribute("disabled"));
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", onKeyDown);
+      if (lastFocusedElementRef.current instanceof HTMLElement) {
+        lastFocusedElementRef.current.focus();
+      }
+    };
   }, [showResetDialog]);
 
   const currentProgress = water % BLOOM_TARGET;
@@ -1056,8 +1090,6 @@ function App() {
   };
 
   const handleResetGarden = () => {
-    localStorage.removeItem("water");
-    localStorage.removeItem(GARDEN_STATE_KEY);
     setWater(0);
     setGardenState(loadOrMigrateGardenState(0));
     setNewBloomIndex(null);
@@ -1065,6 +1097,7 @@ function App() {
     setIsGardenFull(false);
     setShowBloomToast(false);
     setShowResetDialog(false);
+    setShowSettings(false);
     setResetFeedback(t.resetCompleted);
   };
 
@@ -1110,41 +1143,40 @@ function App() {
         </div>
         <h1>{t.appTitle}</h1>
         <p>{t.appSubtitle}</p>
-        {showSettings && (
-          <section id="settings-panel" className="settings-panel" aria-label={t.settingsPanelTitle}>
-            <div className="settings-group">
-              <h2 className="settings-group__title">{t.profile}</h2>
-              <label className="settings-label" htmlFor="settings-name-input">{t.name}</label>
-              <div className="settings-name-row">
-                <input
-                  id="settings-name-input"
-                  className="settings-name-input"
-                  type="text"
-                  maxLength={MAX_USER_NAME_LENGTH}
-                  value={nameInput}
-                  onChange={(event) => setNameInput(event.target.value)}
-                  onBlur={saveName}
-                  onKeyDown={handleNameKeyDown}
-                />
-                <button
-                  type="button"
-                  className="settings-save-btn"
-                  onClick={saveName}
-                  disabled={isNameUnchanged}
-                >
-                  {t.save}
-                </button>
-              </div>
-            </div>
-            <div className="settings-group">
-              <h2 className="settings-group__title">{t.garden}</h2>
-              <button type="button" className="settings-reset-btn" onClick={() => setShowResetDialog(true)}>
-                {t.resetGarden}
+      </header>
+      {showSettings && (
+        <section id="settings-panel" className="settings-panel" aria-label={t.settingsPanelTitle}>
+          <div className="settings-group">
+            <h2 className="settings-group__title">{t.profile}</h2>
+            <label className="settings-label" htmlFor="settings-name-input">{t.name}</label>
+            <div className="settings-name-row">
+              <input
+                id="settings-name-input"
+                className="settings-name-input"
+                type="text"
+                maxLength={MAX_USER_NAME_LENGTH}
+                value={nameInput}
+                onChange={(event) => setNameInput(event.target.value)}
+                onKeyDown={handleNameKeyDown}
+              />
+              <button
+                type="button"
+                className="settings-save-btn"
+                onClick={saveName}
+                disabled={isNameUnchanged}
+              >
+                {t.save}
               </button>
             </div>
-          </section>
-        )}
-      </header>
+          </div>
+          <div className="settings-group">
+            <h2 className="settings-group__title">{t.garden}</h2>
+            <button type="button" className="settings-reset-btn" onClick={() => setShowResetDialog(true)}>
+              {t.resetGarden}
+            </button>
+          </div>
+        </section>
+      )}
 
       <div className="tab-nav" role="tablist" aria-label={t.viewsAria}>
         <button
@@ -1257,11 +1289,12 @@ function App() {
         </div>
       </section>
       {resetFeedback && (
-        <p className="reset-feedback">{resetFeedback}</p>
+        <p className="reset-feedback" role="status" aria-live="polite">{resetFeedback}</p>
       )}
       {showResetDialog && (
-        <div className="dialog-backdrop" role="presentation" onClick={() => setShowResetDialog(false)}>
+        <div className="dialog-backdrop" onClick={() => setShowResetDialog(false)}>
           <div
+            ref={resetDialogRef}
             className="confirm-dialog"
             role="dialog"
             aria-modal="true"
@@ -1272,7 +1305,12 @@ function App() {
             <h2 id="reset-garden-title">{t.resetGardenConfirmTitle}</h2>
             <p id="reset-garden-message">{t.resetGardenConfirmMessage}</p>
             <div className="confirm-dialog__actions">
-              <button type="button" className="confirm-dialog__btn" onClick={() => setShowResetDialog(false)}>
+              <button
+                type="button"
+                className="confirm-dialog__btn"
+                ref={resetCancelButtonRef}
+                onClick={() => setShowResetDialog(false)}
+              >
                 {t.cancel}
               </button>
               <button type="button" className="confirm-dialog__btn confirm-dialog__btn--danger" onClick={handleResetGarden}>
