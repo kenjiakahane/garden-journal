@@ -24,10 +24,24 @@ const DAILY_SEEDS = [
 
 const WEEKDAY_LABELS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺"];
+const GARDEN_STATE_KEY = "gardenState";
 const TABS = {
   JOURNAL: "journal",
   EXPLORE: "explore",
 };
+
+const LEGACY_FLOWER_SPOTS = [
+  { x: 2, y: 2 },
+  { x: 5, y: 1 },
+  { x: 7, y: 2 },
+  { x: 3, y: 3 },
+  { x: 6, y: 3 },
+  { x: 1, y: 3 },
+  { x: 4, y: 2 },
+  { x: 6, y: 1 },
+  { x: 2, y: 4 },
+  { x: 5, y: 3 },
+];
 
 const PUBLIC_GARDENS = [
   {
@@ -124,6 +138,101 @@ function isSoilTile(x, y) {
   return false;
 }
 
+function toCellKey(x, y) {
+  return `${x},${y}`;
+}
+
+function getGardenDecorations(bloomCount) {
+  const stones = [];
+  if (bloomCount >= 2) stones.push({ x: 0, y: 4 });
+  if (bloomCount >= 4) stones.push({ x: 8, y: 3 });
+  if (bloomCount >= 7) stones.push({ x: 0, y: 2 });
+
+  const pathTiles = bloomCount >= 5
+    ? [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }]
+    : [];
+  const bush = bloomCount >= 8 ? { x: 1, y: 2 } : null;
+
+  return { stones, pathTiles, bush };
+}
+
+function normalizePlant(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const cycle = Number(raw.cycle);
+  const x = Number(raw.x);
+  const y = Number(raw.y);
+  if (!Number.isInteger(cycle) || cycle < 0) return null;
+  if (!Number.isInteger(x) || x < 0 || x >= GARDEN_COLS) return null;
+  if (!Number.isInteger(y) || y < 0 || y >= GARDEN_ROWS) return null;
+  const flowerType = typeof raw.flowerType === "string" && raw.flowerType
+    ? raw.flowerType
+    : FLOWER_CYCLE[cycle % FLOWER_CYCLE.length];
+  return {
+    id: typeof raw.id === "string" ? raw.id : `plant-${cycle}`,
+    cycle,
+    x,
+    y,
+    flowerType,
+  };
+}
+
+function getDeterministicSpots() {
+  const allCells = [];
+  for (let y = 0; y < GARDEN_ROWS; y += 1) {
+    for (let x = 0; x < GARDEN_COLS; x += 1) {
+      const isPathCell = y === 5 && x >= 3 && x <= 5;
+      const isStoneCell = (x === 0 && y === 4) || (x === 8 && y === 3) || (x === 0 && y === 2);
+      const isBushCell = x === 1 && y === 2;
+      if (isPathCell || isStoneCell || isBushCell) continue;
+      allCells.push({ x, y });
+    }
+  }
+  return seededShuffle(allCells, hashSeed("journal-garden-default-spots"));
+}
+
+function loadOrMigrateGardenState(waterValue) {
+  const saved = localStorage.getItem(GARDEN_STATE_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      const savedPlants = Array.isArray(parsed?.plants)
+        ? parsed.plants.map(normalizePlant).filter(Boolean)
+        : [];
+      const seenCycles = new Set();
+      const deduped = savedPlants
+        .sort((a, b) => a.cycle - b.cycle)
+        .filter((plant) => {
+          if (seenCycles.has(plant.cycle)) return false;
+          seenCycles.add(plant.cycle);
+          return true;
+        });
+      const pendingSproutCycle = Number.isInteger(parsed?.pendingSproutCycle) && parsed.pendingSproutCycle >= 0
+        ? parsed.pendingSproutCycle
+        : null;
+      return { plants: deduped, pendingSproutCycle };
+    } catch {
+      // Fall through to migration.
+    }
+  }
+
+  const bloomCount = Math.floor(waterValue / BLOOM_TARGET);
+  const progress = waterValue % BLOOM_TARGET;
+  const migratedCycles = bloomCount + (progress > 0 || bloomCount === 0 ? 1 : 0);
+  const deterministicSpots = [...LEGACY_FLOWER_SPOTS, ...getDeterministicSpots()];
+  const plants = Array.from({ length: migratedCycles }, (_, cycle) => {
+    const spot = deterministicSpots[cycle];
+    if (!spot) return null;
+    return {
+      id: `plant-${cycle}`,
+      cycle,
+      x: spot.x,
+      y: spot.y,
+      flowerType: FLOWER_CYCLE[cycle % FLOWER_CYCLE.length],
+    };
+  }).filter(Boolean);
+  return { plants, pendingSproutCycle: null };
+}
+
 function getGardenStageFlowerCount(bloomCount) {
   if (bloomCount <= 0) return 0;
   if (bloomCount === 1) return 1;
@@ -134,20 +243,9 @@ function getGardenStageFlowerCount(bloomCount) {
   return 9;
 }
 
-function buildGardenScene({ bloomCount, progress, seed }) {
+function buildExploreGardenScene({ bloomCount, progress, seed }) {
   const flowerSpots = seededShuffle(
-    [
-      { x: 2, y: 2 },
-      { x: 5, y: 1 },
-      { x: 7, y: 2 },
-      { x: 3, y: 3 },
-      { x: 6, y: 3 },
-      { x: 1, y: 3 },
-      { x: 4, y: 2 },
-      { x: 6, y: 1 },
-      { x: 2, y: 4 },
-      { x: 5, y: 3 },
-    ],
+    LEGACY_FLOWER_SPOTS,
     hashSeed(seed),
   );
 
@@ -159,28 +257,73 @@ function buildGardenScene({ bloomCount, progress, seed }) {
   }));
   const usedSpots = new Set(flowers.map((spot) => `${spot.x},${spot.y}`));
   const nextSproutSpot = flowerSpots.find((spot) => !usedSpots.has(`${spot.x},${spot.y}`)) || { x: 4, y: 3 };
-
-  const stones = [];
-  if (bloomCount >= 2) stones.push({ x: 0, y: 4 });
-  if (bloomCount >= 4) stones.push({ x: 8, y: 3 });
-  if (bloomCount >= 7) stones.push({ x: 0, y: 2 });
-
-  const pathTiles = bloomCount >= 5
-    ? [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }]
-    : [];
-  const bush = bloomCount >= 8 ? { x: 1, y: 2 } : null;
+  const { stones, pathTiles, bush } = getGardenDecorations(bloomCount);
   const sprout = progress > 0 || bloomCount === 0 ? nextSproutSpot : null;
 
   return { flowers, stones, pathTiles, bush, sprout };
 }
 
-function summarizeGarden({ bloomCount, progress, hasSprout }) {
+function getPlantStage(cycle, bloomCount, progress) {
+  if (cycle < bloomCount) return "flower";
+  if (cycle > bloomCount) return null;
+  return progress >= 3 ? "plant" : "sprout";
+}
+
+function summarizeGarden({ bloomCount, progress, hasSprout, plantingMode }) {
+  if (plantingMode) return "Planting mode. Choose an empty spot for your new sprout.";
   const bloomsText = `${bloomCount} bloom${bloomCount === 1 ? "" : "s"}`;
   if (hasSprout) {
     const sproutStage = progress >= 3 ? "a growing sprout" : "a tiny sprout";
     return `Your garden has ${bloomsText} and ${sproutStage}.`;
   }
   return `Your garden has ${bloomsText}.`;
+}
+
+function buildJournalGardenScene({ bloomCount, progress, plants, pendingSproutCycle }) {
+  const stagedPlants = plants
+    .map((plant) => {
+      const stage = getPlantStage(plant.cycle, bloomCount, progress);
+      if (!stage) return null;
+      return {
+        ...plant,
+        stage,
+        emoji: stage === "flower" ? plant.flowerType : stage === "plant" ? "🌿" : "🌱",
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.cycle - b.cycle);
+
+  const occupiedKeys = new Set(stagedPlants.map((plant) => toCellKey(plant.x, plant.y)));
+  const decorations = getGardenDecorations(bloomCount);
+  const stones = decorations.stones.filter((stone) => !occupiedKeys.has(toCellKey(stone.x, stone.y)));
+  const bush = decorations.bush && !occupiedKeys.has(toCellKey(decorations.bush.x, decorations.bush.y))
+    ? decorations.bush
+    : null;
+  const pathTiles = decorations.pathTiles.filter((tile) => !occupiedKeys.has(toCellKey(tile.x, tile.y)));
+
+  stones.forEach((stone) => occupiedKeys.add(toCellKey(stone.x, stone.y)));
+  if (bush) occupiedKeys.add(toCellKey(bush.x, bush.y));
+
+  const pathKeySet = new Set(pathTiles.map((tile) => toCellKey(tile.x, tile.y)));
+  const allPlantableCells = [];
+  for (let y = 0; y < GARDEN_ROWS; y += 1) {
+    for (let x = 0; x < GARDEN_COLS; x += 1) {
+      if (pathKeySet.has(toCellKey(x, y))) continue;
+      allPlantableCells.push({ x, y });
+    }
+  }
+
+  const emptyCells = allPlantableCells.filter((cell) => !occupiedKeys.has(toCellKey(cell.x, cell.y)));
+  const canPlant = pendingSproutCycle !== null && emptyCells.length > 0;
+
+  return {
+    plants: stagedPlants,
+    stones,
+    bush,
+    pathTiles,
+    emptyCells,
+    canPlant,
+  };
 }
 
 function getEmojiSize(y, compact) {
@@ -201,21 +344,58 @@ function emojiOffset(x, y, seed, axis) {
   return (n % 21) - 10; // −10 % to +10 % of the cell
 }
 
-function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint", highlightFlowerIndex = null }) {
+function PixelGarden({
+  bloomCount,
+  progress,
+  seed,
+  compact = false,
+  tone = "mint",
+  highlightFlowerIndex = null,
+  plants = null,
+  pendingSproutCycle = null,
+  onPlantSprout = null,
+  newlyPlantedCycle = null,
+}) {
+  const gardenSeed = seed || "journal-garden";
   const scene = useMemo(
-    () => buildGardenScene({ bloomCount, progress, seed }),
-    [bloomCount, progress, seed],
+    () => (plants
+      ? buildJournalGardenScene({ bloomCount, progress, plants, pendingSproutCycle })
+      : buildExploreGardenScene({ bloomCount, progress, seed: gardenSeed })),
+    [bloomCount, progress, plants, pendingSproutCycle, gardenSeed],
+  );
+  const plantingMode = Boolean(plants && onPlantSprout && scene.canPlant);
+  const occupiedCellSet = useMemo(
+    () => new Set([
+      ...(scene.plants || []).map((plant) => toCellKey(plant.x, plant.y)),
+      ...scene.stones.map((stone) => toCellKey(stone.x, stone.y)),
+      ...(scene.bush ? [toCellKey(scene.bush.x, scene.bush.y)] : []),
+    ]),
+    [scene.bush, scene.plants, scene.stones],
+  );
+  const allCells = useMemo(() => {
+    const cells = [];
+    for (let y = 0; y < GARDEN_ROWS; y += 1) {
+      for (let x = 0; x < GARDEN_COLS; x += 1) {
+        cells.push({ x, y });
+      }
+    }
+    return cells;
+  }, []);
+  const pathCellSet = useMemo(
+    () => new Set(scene.pathTiles.map((tile) => toCellKey(tile.x, tile.y))),
+    [scene.pathTiles],
   );
   const summary = summarizeGarden({
     bloomCount,
     progress,
-    hasSprout: Boolean(scene.sprout),
+    hasSprout: plants ? scene.plants.some((plant) => plant.stage !== "flower") : Boolean(scene.sprout),
+    plantingMode,
   });
 
   return (
     <figure
       className={`pixel-garden${compact ? " pixel-garden--compact" : ""} pixel-garden--${tone}`}
-      role="img"
+      role={plantingMode ? "group" : "img"}
       aria-label={summary}
     >
       <div
@@ -224,7 +404,7 @@ function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint
           gridTemplateColumns: `repeat(${GARDEN_COLS}, 1fr)`,
           gridTemplateRows: `repeat(${GARDEN_ROWS}, 1fr)`,
         }}
-        aria-hidden="true"
+        aria-hidden={plantingMode ? undefined : "true"}
       >
         {Array.from({ length: GARDEN_COLS * GARDEN_ROWS }, (_, i) => {
           const x = i % GARDEN_COLS;
@@ -233,12 +413,13 @@ function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint
           const isPath = scene.pathTiles.some((tile) => tile.x === x && tile.y === y);
           const tileClass = isPath ? "tile tile--path" : isSoil ? "tile tile--soil" : "tile tile--grass";
 
-          return <span key={`tile-${x}-${y}`} className={tileClass} />;
+          return <span key={`tile-${x}-${y}`} className={tileClass} aria-hidden="true" />;
         })}
         {scene.stones.map((stone) => (
           <span
             key={`stone-${stone.x}-${stone.y}`}
             className="garden-emoji"
+            aria-hidden="true"
             style={{
               gridColumn: stone.x + 1,
               gridRow: stone.y + 1,
@@ -249,15 +430,16 @@ function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint
             🪨
           </span>
         ))}
-        {scene.flowers.map((flower) => (
+        {(scene.flowers || []).map((flower) => (
           <span
             key={`flower-${flower.x}-${flower.y}`}
             className={`garden-emoji${flower.index === highlightFlowerIndex ? " garden-emoji--new" : ""}`}
+            aria-hidden="true"
             style={{
               gridColumn: flower.x + 1,
               gridRow: flower.y + 1,
               fontSize: getEmojiSize(flower.y, compact),
-              transform: `translate(${emojiOffset(flower.x, flower.y, seed, "x")}%, ${emojiOffset(flower.x, flower.y, seed, "y")}%)`,
+              transform: `translate(${emojiOffset(flower.x, flower.y, gardenSeed, "x")}%, ${emojiOffset(flower.x, flower.y, gardenSeed, "y")}%)`,
             }}
           >
             {flower.emoji}
@@ -266,28 +448,77 @@ function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint
         {scene.sprout && (
           <span
             className="garden-emoji"
+            aria-hidden="true"
             style={{
               gridColumn: scene.sprout.x + 1,
               gridRow: scene.sprout.y + 1,
               fontSize: getEmojiSize(scene.sprout.y, compact),
-              transform: `translate(${emojiOffset(scene.sprout.x, scene.sprout.y, seed, "x")}%, ${emojiOffset(scene.sprout.x, scene.sprout.y, seed, "y")}%)`,
+              transform: `translate(${emojiOffset(scene.sprout.x, scene.sprout.y, gardenSeed, "x")}%, ${emojiOffset(scene.sprout.x, scene.sprout.y, gardenSeed, "y")}%)`,
             }}
           >
             🌱
           </span>
         )}
+        {scene.plants && scene.plants.map((plant) => (
+          <span
+            key={`plant-${plant.cycle}`}
+            className={`garden-emoji${plant.cycle === newlyPlantedCycle ? " garden-emoji--planted" : ""}`}
+            aria-hidden="true"
+            style={{
+              gridColumn: plant.x + 1,
+              gridRow: plant.y + 1,
+              fontSize: getEmojiSize(plant.y, compact),
+              transform: `translate(${emojiOffset(plant.x, plant.y, gardenSeed, "x")}%, ${emojiOffset(plant.x, plant.y, gardenSeed, "y")}%)`,
+            }}
+          >
+            {plant.emoji}
+          </span>
+        ))}
         {scene.bush && (
           <span
             className="garden-emoji"
+            aria-hidden="true"
             style={{
               gridColumn: scene.bush.x + 1,
               gridRow: scene.bush.y + 1,
               fontSize: getEmojiSize(scene.bush.y, compact),
-              transform: `translate(${emojiOffset(scene.bush.x, scene.bush.y, seed, "x")}%, ${emojiOffset(scene.bush.x, scene.bush.y, seed, "y")}%)`,
+              transform: `translate(${emojiOffset(scene.bush.x, scene.bush.y, gardenSeed, "x")}%, ${emojiOffset(scene.bush.x, scene.bush.y, gardenSeed, "y")}%)`,
             }}
           >
             🌿
           </span>
+        )}
+        {plantingMode && (
+          <div
+            className="garden-planting-layer"
+            role="group"
+            aria-label="Select where to plant your sprout"
+            style={{
+              "--garden-cols": GARDEN_COLS,
+              "--garden-rows": GARDEN_ROWS,
+            }}
+          >
+            {allCells.map((cell) => {
+              const occupied = occupiedCellSet.has(toCellKey(cell.x, cell.y)) || pathCellSet.has(toCellKey(cell.x, cell.y));
+              return (
+                <button
+                  key={`plant-cell-${cell.x}-${cell.y}`}
+                  type="button"
+                  className={`garden-planting-cell${occupied ? " garden-planting-cell--disabled" : ""}`}
+                  onClick={() => {
+                    if (occupied) return;
+                    onPlantSprout(cell.x, cell.y);
+                  }}
+                  disabled={occupied}
+                  aria-label={`Plant sprout at row ${cell.y + 1}, column ${cell.x + 1}`}
+                  style={{
+                    gridColumn: cell.x + 1,
+                    gridRow: cell.y + 1,
+                  }}
+                />
+              );
+            })}
+          </div>
         )}
       </div>
     </figure>
@@ -416,11 +647,21 @@ function ProgressDots({ progress, poppingIndex }) {
   );
 }
 
-function GardenHero({ water, newBloomIndex, poppingDotIndex }) {
+function GardenHero({
+  water,
+  newBloomIndex,
+  poppingDotIndex,
+  plants,
+  pendingSproutCycle,
+  onPlantSprout,
+  newlyPlantedCycle,
+  isGardenFull,
+}) {
   const bloomCount = Math.floor(water / BLOOM_TARGET);
   const progress = water % BLOOM_TARGET;
   const justBloomed = water > 0 && progress === 0;
   const dropsUntilBloom = justBloomed ? 0 : BLOOM_TARGET - progress;
+  const plantingMode = pendingSproutCycle !== null && !isGardenFull;
 
   return (
     <section className="hero-section">
@@ -436,7 +677,17 @@ function GardenHero({ water, newBloomIndex, poppingDotIndex }) {
         progress={progress}
         seed="journal-garden"
         highlightFlowerIndex={newBloomIndex}
+        plants={plants}
+        pendingSproutCycle={pendingSproutCycle}
+        onPlantSprout={onPlantSprout}
+        newlyPlantedCycle={newlyPlantedCycle}
       />
+      {plantingMode && (
+        <p className="planting-message">Where should this sprout grow?</p>
+      )}
+      {isGardenFull && (
+        <p className="garden-full-message">Your garden is full of life.</p>
+      )}
       <ProgressDots progress={progress} poppingIndex={poppingDotIndex} />
       <p className="bloom-message">
         {dropsUntilBloom > 0
@@ -596,16 +847,20 @@ function App() {
     const saved = localStorage.getItem("water");
     return saved ? Number(saved) : 0;
   });
+  const [gardenState, setGardenState] = useState(() => loadOrMigrateGardenState(water));
   const [lastAnalysis, setLastAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [newBloomIndex, setNewBloomIndex] = useState(null);
+  const [newlyPlantedCycle, setNewlyPlantedCycle] = useState(null);
+  const [isGardenFull, setIsGardenFull] = useState(false);
   const [showBloomToast, setShowBloomToast] = useState(false);
 
   useEffect(() => { sessionStorage.setItem("journalDraft", text); }, [text]);
   useEffect(() => { localStorage.setItem("journalEntries", JSON.stringify(entries)); }, [entries]);
   useEffect(() => { localStorage.setItem("water", water); }, [water]);
+  useEffect(() => { localStorage.setItem(GARDEN_STATE_KEY, JSON.stringify(gardenState)); }, [gardenState]);
 
   useEffect(() => {
     if (newBloomIndex === null) return;
@@ -616,11 +871,45 @@ function App() {
     return () => clearTimeout(timer);
   }, [newBloomIndex]);
 
+  useEffect(() => {
+    if (newlyPlantedCycle === null) return;
+    const timer = setTimeout(() => setNewlyPlantedCycle(null), 450);
+    return () => clearTimeout(timer);
+  }, [newlyPlantedCycle]);
+
   const currentProgress = water % BLOOM_TARGET;
   const groupedEntries = useMemo(() => groupEntriesByDate(entries), [entries]);
   const poppingDotIndex = isAnimating && water > 0
     ? (currentProgress === 0 ? BLOOM_TARGET - 1 : currentProgress - 1)
     : -1;
+
+  const handlePlantSprout = (x, y) => {
+    if (gardenState.pendingSproutCycle === null) return;
+    const activeScene = buildJournalGardenScene({
+      bloomCount: Math.floor(water / BLOOM_TARGET),
+      progress: water % BLOOM_TARGET,
+      plants: gardenState.plants,
+      pendingSproutCycle: gardenState.pendingSproutCycle,
+    });
+    const canPlant = activeScene.emptyCells.some((cell) => cell.x === x && cell.y === y);
+    if (!canPlant) return;
+    const cycle = gardenState.pendingSproutCycle;
+    setGardenState({
+      plants: [
+        ...gardenState.plants,
+        {
+          id: `plant-${cycle}`,
+          cycle,
+          x,
+          y,
+          flowerType: FLOWER_CYCLE[cycle % FLOWER_CYCLE.length],
+        },
+      ],
+      pendingSproutCycle: null,
+    });
+    setNewlyPlantedCycle(cycle);
+    setIsGardenFull(false);
+  };
 
   const handleSave = async () => {
     if (!text.trim() || isSaving) return;
@@ -640,16 +929,39 @@ function App() {
     setEntries((current) => [newEntry, ...current]);
 
     if (analysis.water > 0) {
-      setWater((current) => {
-        const prevBloomCount = Math.floor(current / BLOOM_TARGET);
-        const nextWater = current + analysis.water;
-        const nextBloomCount = Math.floor(nextWater / BLOOM_TARGET);
-        if (nextBloomCount > prevBloomCount) {
-          setNewBloomIndex(nextBloomCount - 1);
-          setShowBloomToast(true);
+      const prevBloomCount = Math.floor(water / BLOOM_TARGET);
+      const nextWater = water + analysis.water;
+      const nextBloomCount = Math.floor(nextWater / BLOOM_TARGET);
+      setWater(nextWater);
+      if (nextBloomCount > prevBloomCount) {
+        setNewBloomIndex(nextBloomCount - 1);
+        setShowBloomToast(true);
+        if (gardenState.pendingSproutCycle === null) {
+          const nextCycle = nextBloomCount;
+          if (!gardenState.plants.some((plant) => plant.cycle === nextCycle)) {
+            const nextScene = buildJournalGardenScene({
+              bloomCount: nextBloomCount,
+              progress: nextWater % BLOOM_TARGET,
+              plants: gardenState.plants,
+              pendingSproutCycle: nextCycle,
+            });
+            const hasOpenSpot = nextScene.emptyCells.length > 0;
+            setIsGardenFull(!hasOpenSpot);
+            if (hasOpenSpot) {
+              setGardenState((previous) => {
+                if (previous.pendingSproutCycle !== null) return previous;
+                if (previous.plants.some((plant) => plant.cycle === nextCycle)) return previous;
+                return {
+                  ...previous,
+                  pendingSproutCycle: nextCycle,
+                };
+              });
+            }
+          } else {
+            setIsGardenFull(false);
+          }
         }
-        return nextWater;
-      });
+      }
     }
 
     setText("");
@@ -711,6 +1023,11 @@ function App() {
           water={water}
           newBloomIndex={newBloomIndex}
           poppingDotIndex={poppingDotIndex}
+          plants={gardenState.plants}
+          pendingSproutCycle={gardenState.pendingSproutCycle}
+          onPlantSprout={handlePlantSprout}
+          newlyPlantedCycle={newlyPlantedCycle}
+          isGardenFull={isGardenFull}
         />
 
         {showBloomToast && (
