@@ -82,6 +82,18 @@ function App() {
       ? "🌿"
       : "🌱";
 
+  const nextGrowth =
+  water < 2
+    ? { target: 2, label: "until your plant grows" }
+    : water < 5
+    ? { target: 5, label: "until your flower blooms" }
+    : null;
+
+const progress =
+  nextGrowth
+    ? Math.min((water / nextGrowth.target) * 100, 100)
+    : 100;
+
   return (
     <main>
       <header>
@@ -99,6 +111,34 @@ function App() {
 
           <p className="water">
             💧 Water: {water}
+            {nextGrowth ? (
+              <div className="growth-progress">
+                <div className="growth-row">
+                  <span>
+                    💧 {water} / {nextGrowth.target}
+                  </span>
+
+                  <span>
+                    {nextGrowth.target - water} more
+                  </span>
+                </div>
+
+                <div className="progress-track">
+                  <div
+                    className="progress-bar"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+
+                <p className="growth-message">
+                  {nextGrowth.target - water} more water {nextGrowth.label}.
+                </p>
+              </div>
+            ) : (
+              <p className="growth-message">
+                🌷 Your flower is blooming.
+              </p>
+            )}
           </p>
 
           <button
