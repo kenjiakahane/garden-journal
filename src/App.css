@@ -52,6 +52,27 @@ header p {
   font-size: 17px;
 }
 
+/* ── Past Flowers ─────────────────────────────────── */
+.past-flowers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  min-height: 32px;
+}
+
+.past-flower {
+  font-size: 28px;
+  line-height: 1;
+  animation: flowerAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes flowerAppear {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
 /* ── Hero Section ─────────────────────────────────── */
 .hero-section {
   background: var(--hero-bg);
