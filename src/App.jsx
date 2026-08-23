@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { analyzeJournal } from "./services/analyzeJournal";
+import {
+  getInitialLanguage,
+  LANGUAGE_STORAGE_KEY,
+  LOCALES,
+  translations,
+} from "./i18n";
 import "./App.css";
 
 const BLOOM_TARGET = 5; // water drops needed to reach bloom; also the number of progress dots
@@ -7,22 +13,6 @@ const BLOOM_TARGET = 5; // water drops needed to reach bloom; also the number of
 const GARDEN_COLS = 9;
 const GARDEN_ROWS = 6;
 
-const DAILY_SEEDS = [
-  "What made you smile today?",
-  "What are you grateful for today?",
-  "What surprised you today?",
-  "What felt difficult today?",
-  "What did you learn today?",
-  "Who helped you today?",
-  "What are you proud of today?",
-  "What would you like to remember about today?",
-  "What gave you energy today?",
-  "What would you do differently tomorrow?",
-  "What small thing went well today?",
-  "What has been on your mind lately?",
-];
-
-const WEEKDAY_LABELS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺"];
 const GARDEN_STATE_KEY = "gardenState";
 const TABS = {
@@ -48,58 +38,79 @@ const PUBLIC_GARDENS = [
     id: "aya",
     name: "Aya",
     blooms: 12,
-    message: "Morning light on the balcony.",
+    message: {
+      en: "Morning light on the balcony.",
+      ja: "バルコニーに朝の光が差していました。",
+    },
     tone: "mint",
   },
   {
     id: "mika",
     name: "Mika",
     blooms: 8,
-    message: "A slow garden after rain.",
+    message: {
+      en: "A slow garden after rain.",
+      ja: "雨あがりの庭は、ゆっくりと息をしていました。",
+    },
     tone: "cream",
   },
   {
     id: "leo",
     name: "Leo",
     blooms: 4,
-    message: "New sprouts near the window.",
+    message: {
+      en: "New sprouts near the window.",
+      ja: "窓辺に新しい芽が顔を出しました。",
+    },
     tone: "yellow",
   },
   {
     id: "hana",
     name: "Hana",
     blooms: 10,
-    message: "Tiny blooms, gentle breeze.",
+    message: {
+      en: "Tiny blooms, gentle breeze.",
+      ja: "小さな花と、やわらかな風。",
+    },
     tone: "pink",
   },
   {
     id: "sora",
     name: "Sora",
     blooms: 6,
-    message: "Quiet greens this week.",
+    message: {
+      en: "Quiet greens this week.",
+      ja: "今週の庭は、静かな緑に包まれていました。",
+    },
     tone: "mint",
   },
   {
     id: "nina",
     name: "Nina",
     blooms: 9,
-    message: "Soft colors in the afternoon.",
+    message: {
+      en: "Soft colors in the afternoon.",
+      ja: "午後の庭に、やわらかな色が広がっていました。",
+    },
     tone: "cream",
   },
   {
     id: "rui",
     name: "Rui",
     blooms: 7,
-    message: "A tiny corner keeps growing.",
+    message: {
+      en: "A tiny corner keeps growing.",
+      ja: "小さな一角が、今日も育っています。",
+    },
     tone: "pink",
   },
 ];
 
-function getDailySeed() {
+function getDailySeed(seedPrompts) {
   const now = new Date();
   const dayIndex =
     now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
-  return DAILY_SEEDS[dayIndex % DAILY_SEEDS.length];
+  return seedPrompts[dayIndex % seedPrompts.length];
 }
 
 function hashSeed(seed) {
@@ -269,14 +280,13 @@ function getPlantStage(cycle, bloomCount, progress) {
   return progress >= 3 ? "plant" : "sprout";
 }
 
-function summarizeGarden({ bloomCount, progress, hasSprout, plantingMode }) {
-  if (plantingMode) return "Planting mode. Choose an empty spot for your new sprout.";
-  const bloomsText = `${bloomCount} bloom${bloomCount === 1 ? "" : "s"}`;
+function summarizeGarden({ bloomCount, progress, hasSprout, plantingMode, t }) {
+  if (plantingMode) return t.plantingModeSummary;
   if (hasSprout) {
-    const sproutStage = progress >= 3 ? "a growing sprout" : "a tiny sprout";
-    return `Your garden has ${bloomsText} and ${sproutStage}.`;
+    const sproutStage = progress >= 3 ? t.sproutStageGrowing : t.sproutStageTiny;
+    return t.gardenSummaryWithSprout(bloomCount, sproutStage);
   }
-  return `Your garden has ${bloomsText}.`;
+  return t.gardenSummary(bloomCount);
 }
 
 function buildJournalGardenScene({ bloomCount, progress, plants, pendingSproutCycle }) {
@@ -355,6 +365,7 @@ function PixelGarden({
   pendingSproutCycle = null,
   onPlantSprout = null,
   newlyPlantedCycle = null,
+  t,
 }) {
   const gardenSeed = seed || "journal-garden";
   const scene = useMemo(
@@ -390,6 +401,7 @@ function PixelGarden({
     progress,
     hasSprout: plants ? scene.plants.some((plant) => plant.stage !== "flower") : Boolean(scene.sprout),
     plantingMode,
+    t,
   });
 
   return (
@@ -492,7 +504,7 @@ function PixelGarden({
           <div
             className="garden-planting-layer"
             role="group"
-            aria-label="Select where to plant your sprout"
+            aria-label={t.plantingLayerLabel}
             style={{
               "--garden-cols": GARDEN_COLS,
               "--garden-rows": GARDEN_ROWS,
@@ -510,7 +522,7 @@ function PixelGarden({
                     onPlantSprout(cell.x, cell.y);
                   }}
                   disabled={occupied}
-                  aria-label={`Plant sprout at row ${cell.y + 1}, column ${cell.x + 1}`}
+                  aria-label={t.plantSproutAt(cell.y + 1, cell.x + 1)}
                   style={{
                     gridColumn: cell.x + 1,
                     gridRow: cell.y + 1,
@@ -546,35 +558,41 @@ function getWeekDays(referenceDate = new Date()) {
   });
 }
 
-function formatTodayDate(referenceDate = new Date()) {
-  return referenceDate.toLocaleDateString("en-US", {
+function formatTodayDate(locale, referenceDate = new Date()) {
+  return referenceDate.toLocaleDateString(locale, {
     weekday: "long",
     month: "short",
     day: "numeric",
   });
 }
 
-function formatJournalDateHeading(createdAt) {
+function formatJournalDateHeading(createdAt, locale, t) {
   const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "Unknown day";
-  const month = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
+  if (Number.isNaN(date.getTime())) return t.unknownDay;
+  if (locale === "ja-JP") {
+    return date.toLocaleDateString(locale, {
+      month: "numeric",
+      day: "numeric",
+    });
+  }
+  const month = date.toLocaleString(locale, { month: "short" }).toUpperCase();
   return `${month} ${date.getDate()}`;
 }
 
-function formatJournalTime(createdAt) {
+function formatJournalTime(createdAt, locale) {
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return "--:--";
-  return date.toLocaleTimeString("en-US", {
+  return date.toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
 }
 
-function formatJournalDateTime(createdAt) {
+function formatJournalDateTime(createdAt, locale, t) {
   const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "Unknown date";
-  return date.toLocaleString("en-US", {
+  if (Number.isNaN(date.getTime())) return t.unknownDate;
+  return date.toLocaleString(locale, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -583,7 +601,7 @@ function formatJournalDateTime(createdAt) {
   });
 }
 
-function getWeeklyJournalStatus(entries, referenceDate = new Date()) {
+function getWeeklyJournalStatus(entries, weekdayLabels, referenceDate = new Date()) {
   const weekDays = getWeekDays(referenceDate);
   const todayKey = getLocalDateKey(referenceDate);
   const entryDateKeys = new Set();
@@ -599,14 +617,14 @@ function getWeeklyJournalStatus(entries, referenceDate = new Date()) {
     const key = getLocalDateKey(date);
     return {
       key,
-      label: WEEKDAY_LABELS[date.getDay()],
+      label: weekdayLabels[date.getDay()],
       filled: entryDateKeys.has(key),
       isToday: key === todayKey,
     };
   });
 }
 
-function groupEntriesByDate(entries) {
+function groupEntriesByDate(entries, locale, t) {
   const sortedEntries = [...entries].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const groups = [];
   const groupMap = new Map();
@@ -624,7 +642,7 @@ function groupEntriesByDate(entries) {
 
     const newGroup = {
       key,
-      label: formatJournalDateHeading(entry.createdAt),
+      label: formatJournalDateHeading(entry.createdAt, locale, t),
       entries: [entry],
     };
     groupMap.set(key, newGroup);
@@ -634,9 +652,9 @@ function groupEntriesByDate(entries) {
   return groups;
 }
 
-function ProgressDots({ progress, poppingIndex }) {
+function ProgressDots({ progress, poppingIndex, t }) {
   return (
-    <div className="progress-dots" aria-label={`${progress} of ${BLOOM_TARGET} drops`}>
+    <div className="progress-dots" aria-label={t.progressAria(progress, BLOOM_TARGET)}>
       {Array.from({ length: BLOOM_TARGET }, (_, i) => (
         <span
           key={i}
@@ -656,6 +674,7 @@ function GardenHero({
   onPlantSprout,
   newlyPlantedCycle,
   isGardenFull,
+  t,
 }) {
   const bloomCount = Math.floor(water / BLOOM_TARGET);
   const progress = water % BLOOM_TARGET;
@@ -681,35 +700,36 @@ function GardenHero({
         pendingSproutCycle={pendingSproutCycle}
         onPlantSprout={onPlantSprout}
         newlyPlantedCycle={newlyPlantedCycle}
+        t={t}
       />
       {plantingMode && (
-        <p className="planting-message">Where should this sprout grow?</p>
+        <p className="planting-message">{t.whereShouldSproutGrow}</p>
       )}
       {isGardenFull && (
-        <p className="garden-full-message">Your garden is full of life.</p>
+        <p className="garden-full-message">{t.gardenFull}</p>
       )}
-      <ProgressDots progress={progress} poppingIndex={poppingDotIndex} />
+      <ProgressDots progress={progress} poppingIndex={poppingDotIndex} t={t} />
       <p className="bloom-message">
         {dropsUntilBloom > 0
-          ? `${dropsUntilBloom} drop${dropsUntilBloom === 1 ? "" : "s"} until it blooms`
-          : "🌷 Your flower is blooming!"}
+          ? t.dropsUntilBloom(dropsUntilBloom)
+          : t.flowerBlooming}
       </p>
     </section>
   );
 }
 
-function AnalysisCard({ analysis, visible }) {
+function AnalysisCard({ analysis, visible, t }) {
   if (!analysis || !visible) return null;
 
   const getMessage = () => {
-    if (analysis.error) return "💧 Your reflection has been planted.";
-    if (analysis.safetyConcern) return "🌙 Your reflection has been safely received.";
+    if (analysis.error) return t.analysisError;
+    if (analysis.safetyConcern) return t.analysisSafety;
 
-    if (analysis.gratitude > 0) return "🌼 Gratitude showed up in your reflection.";
-    if (analysis.kindness > 0) return "🌿 A little kindness found its way into today.";
-    if (analysis.reflection > 0) return "🌱 You took a moment to look inward.";
-    if (analysis.growth > 0) return "🌷 There is a little growth in these words.";
-    return "💧 Your reflection has been planted.";
+    if (analysis.gratitude > 0) return t.analysisGratitude;
+    if (analysis.kindness > 0) return t.analysisKindness;
+    if (analysis.reflection > 0) return t.analysisReflection;
+    if (analysis.growth > 0) return t.analysisGrowth;
+    return t.analysisError;
   };
 
   return (
@@ -719,29 +739,29 @@ function AnalysisCard({ analysis, visible }) {
   );
 }
 
-function TodaySeed() {
-  const seed = getDailySeed();
+function TodaySeed({ t, locale }) {
+  const seed = getDailySeed(t.dailySeeds);
   return (
     <div className="today-seed">
-      <span className="today-seed__date">{formatTodayDate()}</span>
-      <span className="today-seed__label dot-label dot-label--seed">Today&apos;s seed</span>
+      <span className="today-seed__date">{formatTodayDate(locale)}</span>
+      <span className="today-seed__label dot-label dot-label--seed">{t.todaySeedLabel}</span>
       <p className="today-seed__prompt">{seed}</p>
     </div>
   );
 }
 
-function WeeklyJournalDots({ entries }) {
-  const weeklyStatus = getWeeklyJournalStatus(entries);
+function WeeklyJournalDots({ entries, t }) {
+  const weeklyStatus = getWeeklyJournalStatus(entries, t.weekdayLabels);
 
   return (
-    <section className="weekly-journal" aria-label="This week's journal entries">
-      <p className="weekly-journal__label dot-label dot-label--week">This week</p>
+    <section className="weekly-journal" aria-label={t.weekAria}>
+      <p className="weekly-journal__label dot-label dot-label--week">{t.weekLabel}</p>
       <div className="weekly-journal__row">
         {weeklyStatus.map((day) => (
           <div
             key={day.key}
             className={`weekly-journal__day${day.isToday ? " weekly-journal__day--today" : ""}`}
-            aria-label={`${day.label}: ${day.filled ? "recorded" : "not recorded"}${day.isToday ? ", today" : ""}`}
+            aria-label={t.weekDayStatus(day.label, day.filled, day.isToday)}
           >
             <span className="weekly-journal__day-label">{day.label}</span>
             <span
@@ -756,10 +776,10 @@ function WeeklyJournalDots({ entries }) {
   );
 }
 
-function JournalEntry({ entry, onDelete }) {
+function JournalEntry({ entry, onDelete, locale, t }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const dateTimeLabel = formatJournalDateTime(entry.createdAt);
+  const dateTimeLabel = formatJournalDateTime(entry.createdAt, locale, t);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -780,13 +800,13 @@ function JournalEntry({ entry, onDelete }) {
           title={dateTimeLabel}
           aria-label={dateTimeLabel}
         >
-          {formatJournalTime(entry.createdAt)}
+          {formatJournalTime(entry.createdAt, locale)}
         </span>
         <div className="journal-card__menu-wrap" ref={menuRef}>
           <button
             className="menu-trigger"
             onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Entry options"
+            aria-label={t.entryOptions}
           >
             •••
           </button>
@@ -796,7 +816,7 @@ function JournalEntry({ entry, onDelete }) {
                 className="menu-item menu-item--danger"
                 onClick={() => { onDelete(entry.id); setMenuOpen(false); }}
               >
-                Delete
+                {t.delete}
               </button>
             </div>
           )}
@@ -812,13 +832,13 @@ function WaterDrop({ animating }) {
   return <span className="water-drop-anim">💧</span>;
 }
 
-function ExploreGardenCard({ garden }) {
+function ExploreGardenCard({ garden, language, t }) {
   return (
     <article
       className={`public-garden-card public-garden-card--${garden.tone}`}
-      aria-label={`${garden.name}'s Garden, ${garden.blooms} blooms`}
+      aria-label={t.gardenCardAria(garden.name, garden.blooms)}
     >
-      <h3 className="public-garden-card__title">{garden.name}&apos;s Garden</h3>
+      <h3 className="public-garden-card__title">{t.gardenCardTitle(garden.name)}</h3>
       <div className="public-garden-card__scene">
         <PixelGarden
           bloomCount={garden.blooms}
@@ -826,11 +846,12 @@ function ExploreGardenCard({ garden }) {
           seed={`explore-${garden.id}`}
           compact
           tone={garden.tone}
+          t={t}
         />
       </div>
-      {garden.message && <p className="public-garden-card__message">{garden.message}</p>}
+      {garden.message && <p className="public-garden-card__message">{garden.message[language]}</p>}
       <p className="public-garden-card__meta">
-        {garden.blooms} blooms
+        {t.gardenCardMeta(garden.blooms)}
       </p>
     </article>
   );
@@ -838,6 +859,7 @@ function ExploreGardenCard({ garden }) {
 
 function App() {
   const [activeTab, setActiveTab] = useState(TABS.JOURNAL);
+  const [language, setLanguage] = useState(() => getInitialLanguage());
   const [text, setText] = useState(() => sessionStorage.getItem("journalDraft") || "");
   const [entries, setEntries] = useState(() => {
     const saved = localStorage.getItem("journalEntries");
@@ -856,11 +878,14 @@ function App() {
   const [newlyPlantedCycle, setNewlyPlantedCycle] = useState(null);
   const [isGardenFull, setIsGardenFull] = useState(false);
   const [showBloomToast, setShowBloomToast] = useState(false);
+  const t = translations[language];
+  const locale = LOCALES[language];
 
   useEffect(() => { sessionStorage.setItem("journalDraft", text); }, [text]);
   useEffect(() => { localStorage.setItem("journalEntries", JSON.stringify(entries)); }, [entries]);
   useEffect(() => { localStorage.setItem("water", water); }, [water]);
   useEffect(() => { localStorage.setItem(GARDEN_STATE_KEY, JSON.stringify(gardenState)); }, [gardenState]);
+  useEffect(() => { localStorage.setItem(LANGUAGE_STORAGE_KEY, language); }, [language]);
 
   useEffect(() => {
     if (newBloomIndex === null) return;
@@ -878,7 +903,7 @@ function App() {
   }, [newlyPlantedCycle]);
 
   const currentProgress = water % BLOOM_TARGET;
-  const groupedEntries = useMemo(() => groupEntriesByDate(entries), [entries]);
+  const groupedEntries = useMemo(() => groupEntriesByDate(entries, locale, t), [entries, locale, t]);
   const poppingDotIndex = isAnimating && water > 0
     ? (currentProgress === 0 ? BLOOM_TARGET - 1 : currentProgress - 1)
     : -1;
@@ -984,12 +1009,31 @@ function App() {
 
   return (
     <main>
-      <header>
-        <h1>Garden Journal</h1>
-        <p>Write. Reflect. Grow.</p>
+      <header className="app-header">
+        <div className="language-switcher" role="group" aria-label={t.switcherAria}>
+          <button
+            type="button"
+            className={`language-switcher__button${language === "en" ? " language-switcher__button--active" : ""}`}
+            onClick={() => setLanguage("en")}
+            aria-pressed={language === "en"}
+          >
+            EN
+          </button>
+          <span className="language-switcher__separator">/</span>
+          <button
+            type="button"
+            className={`language-switcher__button${language === "ja" ? " language-switcher__button--active" : ""}`}
+            onClick={() => setLanguage("ja")}
+            aria-pressed={language === "ja"}
+          >
+            日本語
+          </button>
+        </div>
+        <h1>{t.appTitle}</h1>
+        <p>{t.appSubtitle}</p>
       </header>
 
-      <div className="tab-nav" role="tablist" aria-label="Views">
+      <div className="tab-nav" role="tablist" aria-label={t.viewsAria}>
         <button
           id="tab-journal"
           type="button"
@@ -999,7 +1043,7 @@ function App() {
           className={`tab-nav__button${activeTab === TABS.JOURNAL ? " tab-nav__button--active" : ""}`}
           onClick={() => setActiveTab(TABS.JOURNAL)}
         >
-          Journal
+          {t.tabJournal}
         </button>
         <button
           id="tab-explore"
@@ -1010,7 +1054,7 @@ function App() {
           className={`tab-nav__button${activeTab === TABS.EXPLORE ? " tab-nav__button--active" : ""}`}
           onClick={() => setActiveTab(TABS.EXPLORE)}
         >
-          Explore
+          {t.tabExplore}
         </button>
       </div>
 
@@ -1020,7 +1064,7 @@ function App() {
         aria-labelledby="tab-journal"
         hidden={activeTab !== TABS.JOURNAL}
       >
-        <h2 className="sr-only">Journal</h2>
+        <h2 className="sr-only">{t.tabJournal}</h2>
         <GardenHero
           water={water}
           newBloomIndex={newBloomIndex}
@@ -1030,20 +1074,21 @@ function App() {
           onPlantSprout={handlePlantSprout}
           newlyPlantedCycle={newlyPlantedCycle}
           isGardenFull={isGardenFull}
+          t={t}
         />
 
         {showBloomToast && (
-          <p className="bloom-toast">A new flower bloomed! 🌸</p>
+          <p className="bloom-toast">{t.bloomToast}</p>
         )}
 
         <section className="write-section">
-          <TodaySeed />
-          <WeeklyJournalDots entries={entries} />
-          <p className="water-rule-copy">Every reflection waters your garden.</p>
+          <TodaySeed t={t} locale={locale} />
+          <WeeklyJournalDots entries={entries} t={t} />
+          <p className="water-rule-copy">{t.waterRule}</p>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="What's on your mind?"
+            placeholder={t.textPlaceholder}
           />
           <div className="water-btn-wrap">
             <WaterDrop animating={isAnimating} />
@@ -1052,22 +1097,22 @@ function App() {
               onClick={handleSave}
               disabled={isSaving || !text.trim()}
             >
-              Water the garden 💧
+              {t.waterButton}
             </button>
           </div>
-          <AnalysisCard analysis={lastAnalysis} visible={showAnalysis} />
+          <AnalysisCard analysis={lastAnalysis} visible={showAnalysis} t={t} />
         </section>
 
         {entries.length > 0 && (
           <section className="journal-section">
-            <h2 className="section-label dot-label">Past reflections</h2>
+            <h2 className="section-label dot-label">{t.pastReflections}</h2>
             <div className="journal-groups">
               {groupedEntries.map((group) => (
                 <section key={group.key} className="journal-day-group">
                   <h3 className="journal-day-heading">{group.label}</h3>
                   <div className="cards-grid">
                     {group.entries.map((entry) => (
-                      <JournalEntry key={entry.id} entry={entry} onDelete={handleDelete} />
+                      <JournalEntry key={entry.id} entry={entry} onDelete={handleDelete} locale={locale} t={t} />
                     ))}
                   </div>
                 </section>
@@ -1085,15 +1130,15 @@ function App() {
         hidden={activeTab !== TABS.EXPLORE}
       >
         <header className="explore-header">
-          <h2>Explore gardens</h2>
-          <p>A quiet collection of growing gardens.</p>
+          <h2>{t.exploreTitle}</h2>
+          <p>{t.exploreSubtitle}</p>
           <p className="explore-header__privacy">
-            Only gardens are visible here — journal entries stay private.
+            {t.explorePrivacy}
           </p>
         </header>
         <div className="public-gardens-grid">
           {PUBLIC_GARDENS.map((garden) => (
-            <ExploreGardenCard key={garden.id} garden={garden} />
+            <ExploreGardenCard key={garden.id} garden={garden} language={language} t={t} />
           ))}
         </div>
       </section>
