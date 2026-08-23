@@ -22,6 +22,76 @@ const DAILY_SEEDS = [
 ];
 
 const WEEKDAY_LABELS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+const TABS = {
+  JOURNAL: "journal",
+  EXPLORE: "explore",
+};
+
+const PUBLIC_GARDENS = [
+  {
+    id: "aya",
+    name: "Aya",
+    blooms: 12,
+    plant: "🌿",
+    message: "Morning light on the balcony.",
+    flowers: ["🌷    🌼", "  🌸", "🌱      🌷"],
+    tone: "mint",
+  },
+  {
+    id: "mika",
+    name: "Mika",
+    blooms: 8,
+    plant: "🌱",
+    message: "A slow garden after rain.",
+    flowers: ["🌻   🌷", "   🌺", "🌼      🌿"],
+    tone: "cream",
+  },
+  {
+    id: "leo",
+    name: "Leo",
+    blooms: 4,
+    plant: "🌱",
+    message: "New sprouts near the window.",
+    flowers: ["🌱  🌿", "   🌷", "🌼"],
+    tone: "yellow",
+  },
+  {
+    id: "hana",
+    name: "Hana",
+    blooms: 10,
+    plant: "🌿",
+    message: "Tiny blooms, gentle breeze.",
+    flowers: ["🌸    🌷", "  🌼  🌱", "     🌺"],
+    tone: "pink",
+  },
+  {
+    id: "sora",
+    name: "Sora",
+    blooms: 6,
+    plant: "🌱",
+    message: "Quiet greens this week.",
+    flowers: ["🌿     🌷", "  🌼", "🌱   🌱"],
+    tone: "mint",
+  },
+  {
+    id: "nina",
+    name: "Nina",
+    blooms: 9,
+    plant: "🌿",
+    message: "Soft colors in the afternoon.",
+    flowers: ["🌺   🌸", "   🌷", "🌼      🌱"],
+    tone: "cream",
+  },
+  {
+    id: "rui",
+    name: "Rui",
+    blooms: 7,
+    plant: "🌱",
+    message: "A tiny corner keeps growing.",
+    flowers: ["🌷   🌻", "  🌱", "🌼    🌿"],
+    tone: "pink",
+  },
+];
 
 function getDailySeed() {
   const now = new Date();
@@ -311,7 +381,30 @@ function WaterDrop({ animating }) {
   return <span className="water-drop-anim">💧</span>;
 }
 
+function ExploreGardenCard({ garden }) {
+  return (
+    <article
+      className={`public-garden-card public-garden-card--${garden.tone}`}
+      aria-label={`${garden.name}'s Garden, ${garden.blooms} blooms`}
+    >
+      <h3 className="public-garden-card__title">{garden.name}&apos;s Garden</h3>
+      <div className="public-garden-card__scene" aria-hidden="true">
+        {garden.flowers.map((row, index) => (
+          <p key={index} className="public-garden-card__row">
+            {row}
+          </p>
+        ))}
+      </div>
+      {garden.message && <p className="public-garden-card__message">{garden.message}</p>}
+      <p className="public-garden-card__meta">
+        <span aria-hidden="true">{garden.plant}</span> {garden.blooms} blooms
+      </p>
+    </article>
+  );
+}
+
 function App() {
+  const [activeTab, setActiveTab] = useState(TABS.JOURNAL);
   const [text, setText] = useState(() => sessionStorage.getItem("journalDraft") || "");
   const [entries, setEntries] = useState(() => {
     const saved = localStorage.getItem("journalEntries");
@@ -401,56 +494,109 @@ function App() {
         <p>Write. Reflect. Grow.</p>
       </header>
 
-      <GardenHero
-        water={water}
-        plant={plant}
-        isAnimating={isAnimating}
-        newBloomIndex={newBloomIndex}
-        poppingDotIndex={poppingDotIndex}
-      />
+      <nav className="tab-nav" role="tablist" aria-label="Views">
+        <button
+          id="tab-journal"
+          type="button"
+          role="tab"
+          aria-controls="panel-journal"
+          aria-selected={activeTab === TABS.JOURNAL}
+          className={`tab-nav__button${activeTab === TABS.JOURNAL ? " tab-nav__button--active" : ""}`}
+          onClick={() => setActiveTab(TABS.JOURNAL)}
+        >
+          Journal
+        </button>
+        <button
+          id="tab-explore"
+          type="button"
+          role="tab"
+          aria-controls="panel-explore"
+          aria-selected={activeTab === TABS.EXPLORE}
+          className={`tab-nav__button${activeTab === TABS.EXPLORE ? " tab-nav__button--active" : ""}`}
+          onClick={() => setActiveTab(TABS.EXPLORE)}
+        >
+          Explore
+        </button>
+      </nav>
 
-      {showBloomToast && (
-        <p className="bloom-toast">A new flower bloomed! 🌸</p>
-      )}
+      <section
+        id="panel-journal"
+        role="tabpanel"
+        aria-labelledby="tab-journal"
+        hidden={activeTab !== TABS.JOURNAL}
+      >
+          <GardenHero
+            water={water}
+            plant={plant}
+            isAnimating={isAnimating}
+            newBloomIndex={newBloomIndex}
+            poppingDotIndex={poppingDotIndex}
+          />
 
-      <section className="write-section">
-        <TodaySeed />
-        <WeeklyJournalDots entries={entries} />
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="What's on your mind?"
-        />
-        <div className="water-btn-wrap">
-          <WaterDrop animating={isAnimating} />
-          <button
-            className="btn-primary"
-            onClick={handleSave}
-            disabled={isSaving || !text.trim()}
-          >
-            Water the garden 💧
-          </button>
-        </div>
-        <AnalysisCard analysis={lastAnalysis} visible={showAnalysis} />
+          {showBloomToast && (
+            <p className="bloom-toast">A new flower bloomed! 🌸</p>
+          )}
+
+          <section className="write-section">
+            <TodaySeed />
+            <WeeklyJournalDots entries={entries} />
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="What's on your mind?"
+            />
+            <div className="water-btn-wrap">
+              <WaterDrop animating={isAnimating} />
+              <button
+                className="btn-primary"
+                onClick={handleSave}
+                disabled={isSaving || !text.trim()}
+              >
+                Water the garden 💧
+              </button>
+            </div>
+            <AnalysisCard analysis={lastAnalysis} visible={showAnalysis} />
+          </section>
+
+          {entries.length > 0 && (
+            <section className="journal-section">
+              <h2 className="section-label dot-label">Past reflections</h2>
+              <div className="journal-groups">
+                {groupedEntries.map((group) => (
+                  <section key={group.key} className="journal-day-group">
+                    <h3 className="journal-day-heading">{group.label}</h3>
+                    <div className="cards-grid">
+                      {group.entries.map((entry) => (
+                        <JournalEntry key={entry.id} entry={entry} onDelete={handleDelete} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </section>
+          )}
       </section>
 
-      {entries.length > 0 && (
-        <section className="journal-section">
-          <h2 className="section-label dot-label">Past reflections</h2>
-          <div className="journal-groups">
-            {groupedEntries.map((group) => (
-              <section key={group.key} className="journal-day-group">
-                <h3 className="journal-day-heading">{group.label}</h3>
-                <div className="cards-grid">
-                  {group.entries.map((entry) => (
-                    <JournalEntry key={entry.id} entry={entry} onDelete={handleDelete} />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        </section>
-      )}
+      <section
+        id="panel-explore"
+        role="tabpanel"
+        aria-labelledby="tab-explore"
+        className="explore-section"
+        hidden={activeTab !== TABS.EXPLORE}
+      >
+        <header className="explore-header">
+          <h2>Explore gardens</h2>
+          <p>A quiet collection of growing gardens.</p>
+          <p className="explore-header__privacy">
+            Only gardens are visible here — journal entries stay private.
+          </p>
+        </header>
+        <div className="public-gardens-grid">
+          {PUBLIC_GARDENS.map((garden) => (
+            <ExploreGardenCard key={garden.id} garden={garden} />
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

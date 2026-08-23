@@ -42,7 +42,7 @@ body {
 main {
   max-width: 780px;
   margin: 0 auto;
-  padding: 48px 20px 80px;
+  padding: 48px 20px 96px;
 }
 
 /* ── Header ───────────────────────────────────────── */
@@ -62,6 +62,44 @@ header p {
   margin-top: 8px;
   color: var(--text-muted);
   font-size: 17px;
+}
+
+/* ── Tab Navigation ────────────────────────────────── */
+.tab-nav {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 auto 18px;
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 5px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.tab-nav__button {
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.tab-nav__button--active {
+  background: var(--hero-bg);
+  color: #355f3a;
+}
+
+.tab-nav__button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 /* ── Past Flowers ─────────────────────────────────── */
@@ -506,12 +544,98 @@ textarea:focus {
   background: #FFF0EE;
 }
 
+/* ── Explore ───────────────────────────────────────── */
+.explore-section {
+  padding-top: 4px;
+}
+
+.explore-header {
+  margin-bottom: 18px;
+}
+
+.explore-header h2 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+
+.explore-header p {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.explore-header__privacy {
+  font-size: 13px;
+}
+
+.public-gardens-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+.public-garden-card {
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-card);
+  padding: 18px;
+}
+
+.public-garden-card--mint {
+  background: #edf7ee;
+}
+
+.public-garden-card--cream {
+  background: #fff6e9;
+}
+
+.public-garden-card--pink {
+  background: #faeff0;
+}
+
+.public-garden-card--yellow {
+  background: #f9f6e8;
+}
+
+.public-garden-card__title {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.public-garden-card__scene {
+  margin: 16px 0 12px;
+  text-align: center;
+  min-height: 86px;
+}
+
+.public-garden-card__row {
+  margin: 0;
+  line-height: 1.5;
+  font-size: 28px;
+  white-space: pre;
+}
+
+.public-garden-card__message {
+  margin: 0;
+  font-size: 14px;
+  color: #5d685f;
+}
+
+.public-garden-card__meta {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #415648;
+  font-weight: 600;
+}
+
 /* ── Responsive ───────────────────────────────────── */
 @media (max-width: 600px) {
   header h1 { font-size: 30px; }
   .plant-emoji { font-size: 72px; }
   .cards-grid { grid-template-columns: 1fr; }
-  main { padding: 32px 16px 60px; }
+  main { padding: 32px 16px 104px; }
   .journal-day-group {
     padding-left: 14px;
   }
@@ -520,6 +644,25 @@ textarea:focus {
   }
   .weekly-journal__row {
     gap: 4px;
+  }
+  .tab-nav {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    z-index: 20;
+    width: auto;
+  }
+  .tab-nav__button {
+    flex: 1;
+    padding: 10px 14px;
+  }
+}
+
+@media (min-width: 760px) {
+  .public-gardens-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
   }
 }
 
