@@ -23,7 +23,8 @@ function ProgressDots({ progress }) {
 function GardenHero({ water, plant, isAnimating }) {
   const bloomCount = Math.floor(water / BLOOM_TARGET);
   const progress = water % BLOOM_TARGET;
-  const dropsUntilBloom = BLOOM_TARGET - progress;
+  const justBloomed = water > 0 && progress === 0;
+  const dropsUntilBloom = justBloomed ? 0 : BLOOM_TARGET - progress;
   const pastFlowers = getPastFlowers(bloomCount);
 
   return (
