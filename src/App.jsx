@@ -59,6 +59,12 @@ function App() {
     sessionStorage.removeItem("journalDraft");
   };
 
+  const handleDelete = (id) => {
+    setEntries((current) =>
+      current.filter((entry) => entry.id !== id)
+    );
+  };
+
   const plant =
     water >= 5
       ? "🌷"
@@ -138,11 +144,14 @@ function App() {
           entries.map((entry) => (
             <article key={entry.id}>
               <small>
-                {new Date(
-                  entry.createdAt
-                ).toLocaleString()}
+                {new Date(entry.createdAt).toLocaleString()}
               </small>
+
               <p>{entry.text}</p>
+
+              <button onClick={() => handleDelete(entry.id)}>
+                Delete
+              </button>
             </article>
           ))
         )}
