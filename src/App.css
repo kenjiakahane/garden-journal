@@ -14,6 +14,14 @@
   --text-muted:   #7A7F78;
   --dot-empty:    #C8E6C9;
   --dot-filled:   #388E3C;
+  --week-dot-empty: #DCE7DC;
+  --week-dot-filled: #7CA683;
+  --week-dot-today: #4E7B55;
+  --journal-day-heading: #54685A;
+  --journal-time: #90968F;
+  --today-seed-date: #6D756E;
+  --weekly-day-label: #97A097;
+  --weekly-day-label-today: #66736A;
   --focus-ring:   #7CB880;
   --shadow-card:  0 2px 12px rgba(0,0,0,0.06);
   --shadow-hero:  0 4px 20px rgba(0,0,0,0.06);
@@ -249,6 +257,26 @@ textarea:focus {
   gap: 16px;
 }
 
+.journal-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.journal-day-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.journal-day-heading {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--journal-day-heading);
+}
+
 /* ── Journal Card ─────────────────────────────────── */
 .journal-card {
   background: var(--card-bg);
@@ -274,6 +302,13 @@ textarea:focus {
   color: var(--text-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.journal-card__time {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--journal-time);
+  letter-spacing: 0.03em;
 }
 
 .journal-card__text {
@@ -358,6 +393,14 @@ textarea:focus {
   margin-bottom: 14px;
 }
 
+.today-seed__date {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--today-seed-date);
+  margin-bottom: 6px;
+}
+
 .today-seed__label {
   display: block;
   font-size: 11px;
@@ -374,6 +417,58 @@ textarea:focus {
   font-weight: 500;
   color: #4a6741;
   line-height: 1.45;
+}
+
+/* ── Weekly Journal Dots ───────────────────────────── */
+.weekly-journal {
+  margin: 16px 0 14px;
+}
+
+.weekly-journal__label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.weekly-journal__row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.weekly-journal__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.weekly-journal__day-label {
+  font-size: 10px;
+  color: var(--weekly-day-label);
+  letter-spacing: 0.03em;
+}
+
+.weekly-journal__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--week-dot-empty);
+}
+
+.weekly-journal__dot--filled {
+  background: var(--week-dot-filled);
+}
+
+.weekly-journal__day--today .weekly-journal__day-label {
+  color: var(--weekly-day-label-today);
+}
+
+.weekly-journal__dot--today {
+  box-shadow: 0 0 0 2px rgba(78, 123, 85, 0.2);
 }
 
 /* ── Bloom Toast ──────────────────────────────────── */
