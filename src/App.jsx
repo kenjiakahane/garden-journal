@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { analyzeJournal } from "./services/analyzeJournal";
 import {
   getInitialLanguage,
+  getInitialAppMode,
+  APP_MODE_STORAGE_KEY,
   LANGUAGE_STORAGE_KEY,
   LOCALES,
   translations,
@@ -865,6 +867,7 @@ function ExploreGardenCard({ garden, language, t }) {
 function App() {
   const [activeTab, setActiveTab] = useState(TABS.JOURNAL);
   const [language, setLanguage] = useState(() => getInitialLanguage());
+  const [appMode, setAppMode] = useState(() => getInitialAppMode());
   const [text, setText] = useState(() => sessionStorage.getItem("journalDraft") || "");
   const [entries, setEntries] = useState(() => {
     const saved = localStorage.getItem("journalEntries");
@@ -903,6 +906,7 @@ function App() {
   useEffect(() => { localStorage.setItem(WATER_STORAGE_KEY, water); }, [water]);
   useEffect(() => { localStorage.setItem(GARDEN_STATE_KEY, JSON.stringify(gardenState)); }, [gardenState]);
   useEffect(() => { localStorage.setItem(LANGUAGE_STORAGE_KEY, language); }, [language]);
+  useEffect(() => { localStorage.setItem(APP_MODE_STORAGE_KEY, appMode); }, [appMode]);
   useEffect(() => {
     if (userName) {
       localStorage.setItem(USER_NAME_STORAGE_KEY, userName);
@@ -930,6 +934,18 @@ function App() {
     const timer = setTimeout(() => setResetFeedback(""), 2400);
     return () => clearTimeout(timer);
   }, [resetFeedback]);
+
+  // Re-evaluate today's date when the tab becomes visible (e.g. after midnight)
+  const [todayKey, setTodayKey] = useState(() => getLocalDateKey(new Date()));
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        setTodayKey(getLocalDateKey(new Date()));
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
   useEffect(() => {
     if (!showResetDialog) return undefined;
     lastFocusedElementRef.current = document.activeElement instanceof HTMLElement
@@ -968,6 +984,17 @@ function App() {
       }
     };
   }, [showResetDialog]);
+
+  const isDevelopmentMode = appMode === "development";
+
+  const hasWrittenToday = useMemo(() => {
+    return entries.some((entry) => {
+      const d = new Date(entry.createdAt);
+      return !Number.isNaN(d.getTime()) && getLocalDateKey(d) === todayKey;
+    });
+  }, [entries, todayKey]);
+
+  const showCompletedState = !isDevelopmentMode && hasWrittenToday;
 
   const currentProgress = water % BLOOM_TARGET;
   const groupedEntries = useMemo(() => groupEntriesByDate(entries, locale, t), [entries, locale, t]);
@@ -1105,6 +1132,9 @@ function App() {
     <main>
       <header className="app-header">
         <div className="header-controls">
+          {isDevelopmentMode && (
+            <span className="dev-badge" aria-hidden="true">DEV</span>
+          )}
           <div className="language-switcher" role="group" aria-label={t.switcherAria}>
             <button
               type="button"
@@ -1175,6 +1205,35 @@ function App() {
               {t.resetGarden}
             </button>
           </div>
+          <div className="settings-group settings-group--developer">
+            <h2 className="settings-group__title settings-group__title--developer">{t.developerSection}</h2>
+            <fieldset className="settings-mode-fieldset">
+              <legend className="settings-label">{t.appMode}</legend>
+              <div className="settings-mode-options">
+                <label className="settings-mode-option">
+                  <input
+                    type="radio"
+                    name="appMode"
+                    value="production"
+                    checked={appMode === "production"}
+                    onChange={() => setAppMode("production")}
+                  />
+                  {t.modeProduction}
+                </label>
+                <label className="settings-mode-option">
+                  <input
+                    type="radio"
+                    name="appMode"
+                    value="development"
+                    checked={appMode === "development"}
+                    onChange={() => setAppMode("development")}
+                  />
+                  {t.modeDevelopment}
+                </label>
+              </div>
+            </fieldset>
+            <p className="settings-dev-explanation">{t.devModeExplanation}</p>
+          </div>
         </section>
       )}
 
@@ -1231,22 +1290,31 @@ function App() {
           <TodaySeed t={t} locale={locale} />
           <WeeklyJournalDots entries={entries} t={t} />
           <p className="water-rule-copy">{t.waterRule}</p>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={t.textPlaceholder}
-          />
-          <div className="water-btn-wrap">
-            <WaterDrop animating={isAnimating} />
-            <button
-              className="btn-primary"
-              onClick={handleSave}
-              disabled={isSaving || !text.trim()}
-            >
-              {t.waterButton}
-            </button>
-          </div>
-          <AnalysisCard analysis={lastAnalysis} visible={showAnalysis} t={t} />
+          {showCompletedState ? (
+            <div className="journal-completed-state" role="status" aria-live="polite">
+              <p className="journal-completed-state__heading">{t.completedStateHeading}</p>
+              <p className="journal-completed-state__body">{t.completedStateBody}</p>
+            </div>
+          ) : (
+            <>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={t.textPlaceholder}
+              />
+              <div className="water-btn-wrap">
+                <WaterDrop animating={isAnimating} />
+                <button
+                  className="btn-primary"
+                  onClick={handleSave}
+                  disabled={isSaving || !text.trim()}
+                >
+                  {t.waterButton}
+                </button>
+              </div>
+              <AnalysisCard analysis={lastAnalysis} visible={showAnalysis} t={t} />
+            </>
+          )}
         </section>
 
         {entries.length > 0 && (

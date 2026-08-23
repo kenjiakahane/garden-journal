@@ -1,5 +1,14 @@
 export const LANGUAGE_STORAGE_KEY = "gardenJournalLanguage";
 
+export const APP_MODE_STORAGE_KEY = "gardenJournalAppMode";
+export const DEFAULT_APP_MODE = "development"; // Change to "production" when ready for release
+
+export function getInitialAppMode() {
+  const saved = localStorage.getItem(APP_MODE_STORAGE_KEY);
+  if (saved === "production" || saved === "development") return saved;
+  return DEFAULT_APP_MODE;
+}
+
 export const LOCALES = {
   en: "en-US",
   ja: "ja-JP",
@@ -81,6 +90,13 @@ export const translations = {
     gardenCardMeta: (blooms) => `${blooms} blooms`,
     gardenCardAria: (name, blooms) => `${name}'s Garden, ${blooms} blooms`,
     switcherAria: "Language",
+    developerSection: "Developer",
+    appMode: "App mode",
+    modeProduction: "Production",
+    modeDevelopment: "Development",
+    devModeExplanation: "Development mode allows multiple journal entries per day for testing.",
+    completedStateHeading: "Today's reflection is planted.",
+    completedStateBody: "Come back tomorrow to grow your garden again.",
   },
   ja: {
     languageName: "日本語",
@@ -157,6 +173,13 @@ export const translations = {
     gardenCardMeta: (blooms) => `${blooms}輪`,
     gardenCardAria: (name, blooms) => `${name}の庭、花が${blooms}輪`,
     switcherAria: "言語",
+    developerSection: "開発者向け",
+    appMode: "アプリモード",
+    modeProduction: "本番",
+    modeDevelopment: "開発",
+    devModeExplanation: "開発モードでは、動作確認のため1日に何度でも日誌を書けます。",
+    completedStateHeading: "今日の言葉は、庭に残っています。",
+    completedStateBody: "また明日、少しずつ育てましょう。",
   },
 };
 
