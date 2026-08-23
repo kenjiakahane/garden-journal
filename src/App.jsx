@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { analyzeJournal } from "./services/analyzeJournal";
 import "./App.css";
 
@@ -21,6 +21,8 @@ const DAILY_SEEDS = [
   "What has been on your mind lately?",
 ];
 
+const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+
 function getDailySeed() {
   const now = new Date();
   const dayIndex =
@@ -30,6 +32,101 @@ function getDailySeed() {
 
 function getPastFlowers(bloomCount) {
   return Array.from({ length: bloomCount }, (_, i) => FLOWER_CYCLE[i % FLOWER_CYCLE.length]);
+}
+
+function getLocalDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getWeekDays(referenceDate = new Date()) {
+  const startOfWeek = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate() - referenceDate.getDay(),
+  );
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(startOfWeek);
+    date.setDate(startOfWeek.getDate() + i);
+    return date;
+  });
+}
+
+function formatTodayDate(referenceDate = new Date()) {
+  return referenceDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatJournalDateHeading(createdAt) {
+  const date = new Date(createdAt);
+  const month = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
+  return `${month} ${date.getDate()}`;
+}
+
+function formatJournalTime(createdAt) {
+  const date = new Date(createdAt);
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function getWeeklyJournalStatus(entries, referenceDate = new Date()) {
+  const weekDays = getWeekDays(referenceDate);
+  const todayKey = getLocalDateKey(referenceDate);
+  const entryDateKeys = new Set();
+
+  entries.forEach((entry) => {
+    const entryDate = new Date(entry.createdAt);
+    if (!Number.isNaN(entryDate.getTime())) {
+      entryDateKeys.add(getLocalDateKey(entryDate));
+    }
+  });
+
+  return weekDays.map((date, index) => {
+    const key = getLocalDateKey(date);
+    return {
+      key,
+      label: WEEKDAY_LABELS[index],
+      filled: entryDateKeys.has(key),
+      isToday: key === todayKey,
+    };
+  });
+}
+
+function groupEntriesByDate(entries) {
+  const sortedEntries = [...entries].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const groups = [];
+  const groupMap = new Map();
+
+  sortedEntries.forEach((entry) => {
+    const date = new Date(entry.createdAt);
+    if (Number.isNaN(date.getTime())) return;
+
+    const key = getLocalDateKey(date);
+    const existingGroup = groupMap.get(key);
+    if (existingGroup) {
+      existingGroup.entries.push(entry);
+      return;
+    }
+
+    const newGroup = {
+      key,
+      label: formatJournalDateHeading(entry.createdAt),
+      entries: [entry],
+    };
+    groupMap.set(key, newGroup);
+    groups.push(newGroup);
+  });
+
+  return groups;
 }
 
 function ProgressDots({ progress }) {
@@ -101,24 +198,38 @@ function TodaySeed() {
   const seed = getDailySeed();
   return (
     <div className="today-seed">
+      <span className="today-seed__date">{formatTodayDate()}</span>
       <span className="today-seed__label">Today&apos;s seed</span>
       <p className="today-seed__prompt">{seed}</p>
     </div>
   );
 }
 
+function WeeklyJournalDots({ entries }) {
+  const weeklyStatus = getWeeklyJournalStatus(entries);
+
+  return (
+    <section className="weekly-journal" aria-label="This week journal entries">
+      <p className="weekly-journal__label">This week</p>
+      <div className="weekly-journal__row">
+        {weeklyStatus.map((day) => (
+          <div key={day.key} className={`weekly-journal__day${day.isToday ? " weekly-journal__day--today" : ""}`}>
+            <span className="weekly-journal__day-label">{day.label}</span>
+            <span
+              className={`weekly-journal__dot${day.filled ? " weekly-journal__dot--filled" : ""}${
+                day.isToday ? " weekly-journal__dot--today" : ""
+              }`}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function JournalEntry({ entry, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-
-  const formattedDate = (() => {
-    const d = new Date(entry.createdAt);
-    const month = d.toLocaleString("en", { month: "short" }).toUpperCase();
-    const day = d.getDate();
-    const hours = String(d.getHours()).padStart(2, "0");
-    const mins = String(d.getMinutes()).padStart(2, "0");
-    return `${month} ${day} · ${hours}:${mins}`;
-  })();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -134,7 +245,7 @@ function JournalEntry({ entry, onDelete }) {
   return (
     <article className="journal-card">
       <div className="journal-card__header">
-        <span className="journal-card__date">{formattedDate}</span>
+        <span className="journal-card__time">{formatJournalTime(entry.createdAt)}</span>
         <div className="journal-card__menu-wrap" ref={menuRef}>
           <button
             className="menu-trigger"
@@ -197,6 +308,7 @@ function App() {
 
   const currentProgress = water % BLOOM_TARGET;
   const plant = currentProgress >= 2 ? "🌿" : "🌱";
+  const groupedEntries = useMemo(() => groupEntriesByDate(entries), [entries]);
 
   const handleSave = async () => {
     if (!text.trim() || isSaving) return;
@@ -259,6 +371,7 @@ function App() {
 
       <section className="write-section">
         <TodaySeed />
+        <WeeklyJournalDots entries={entries} />
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -280,9 +393,16 @@ function App() {
       {entries.length > 0 && (
         <section className="journal-section">
           <h2 className="section-label">Past reflections</h2>
-          <div className="cards-grid">
-            {entries.map((entry) => (
-              <JournalEntry key={entry.id} entry={entry} onDelete={handleDelete} />
+          <div className="journal-groups">
+            {groupedEntries.map((group) => (
+              <section key={group.key} className="journal-day-group">
+                <h3 className="journal-day-heading">{group.label}</h3>
+                <div className="cards-grid">
+                  {group.entries.map((entry) => (
+                    <JournalEntry key={entry.id} entry={entry} onDelete={handleDelete} />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </section>
