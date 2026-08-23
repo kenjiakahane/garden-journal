@@ -67,12 +67,20 @@ header {
   position: relative;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
 .language-switcher {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 12px;
   color: var(--text-muted);
 }
@@ -99,6 +107,173 @@ header {
 
 .language-switcher__separator {
   opacity: 0.65;
+}
+
+.settings-trigger {
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #5f675f;
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.settings-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.settings-panel {
+  margin: 18px auto 0;
+  max-width: 540px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  text-align: left;
+}
+
+.settings-group + .settings-group {
+  margin-top: 16px;
+}
+
+.settings-group__title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.settings-label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.settings-name-row {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-name-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #d8d5cc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.settings-name-input:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.settings-save-btn {
+  border: 1px solid var(--hero-border);
+  border-radius: 10px;
+  background: #f6faf6;
+  color: #3f5f45;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.settings-save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.settings-reset-btn {
+  border: 1px solid #dcb7b3;
+  border-radius: 10px;
+  background: #fff7f6;
+  color: #8f423d;
+  padding: 11px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-reset-btn:focus-visible {
+  outline: 2px solid #dcb7b3;
+  outline-offset: 2px;
+}
+
+.reset-feedback {
+  margin: 10px auto 0;
+  width: fit-content;
+  font-size: 14px;
+  color: #4a6741;
+}
+
+.garden-title {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #4a6741;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 34, 34, 0.34);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 30;
+}
+
+.confirm-dialog {
+  width: min(100%, 420px);
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+}
+
+.confirm-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.confirm-dialog p {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.confirm-dialog__actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-dialog__btn {
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.confirm-dialog__btn--danger {
+  border-color: #d59a96;
+  background: #b14f49;
+  color: #fff;
 }
 
 header h1 {
@@ -829,9 +1004,29 @@ textarea:focus {
 /* ── Responsive ───────────────────────────────────── */
 @media (max-width: 600px) {
   header h1 { font-size: 30px; }
+  .header-controls {
+    margin-bottom: 8px;
+  }
   .language-switcher {
     font-size: 11px;
-    margin-bottom: 8px;
+  }
+  .settings-trigger {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  .settings-panel {
+    padding: 14px;
+  }
+  .settings-name-row {
+    flex-direction: column;
+  }
+  .settings-save-btn,
+  .settings-reset-btn,
+  .confirm-dialog__btn {
+    min-height: 42px;
+  }
+  .confirm-dialog__actions {
+    flex-direction: column-reverse;
   }
   .pixel-garden {
     width: min(100%, 380px);

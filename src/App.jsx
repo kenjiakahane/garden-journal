@@ -15,6 +15,8 @@ const GARDEN_ROWS = 6;
 
 const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺"];
 const GARDEN_STATE_KEY = "gardenState";
+const USER_NAME_STORAGE_KEY = "gardenJournalUserName";
+const MAX_USER_NAME_LENGTH = 30;
 const TABS = {
   JOURNAL: "journal",
   EXPLORE: "explore",
@@ -666,6 +668,7 @@ function ProgressDots({ progress, poppingIndex, t }) {
 }
 
 function GardenHero({
+  gardenTitle,
   water,
   newBloomIndex,
   poppingDotIndex,
@@ -684,6 +687,7 @@ function GardenHero({
 
   return (
     <section className="hero-section">
+      <h2 className="garden-title">{gardenTitle}</h2>
       <div className="hero-dots" aria-hidden="true">
         <span className="hero-dot hero-dot--1" />
         <span className="hero-dot hero-dot--2" />
@@ -869,6 +873,12 @@ function App() {
     const saved = localStorage.getItem("water");
     return saved ? Number(saved) : 0;
   });
+  const [userName, setUserName] = useState(() => {
+    const saved = localStorage.getItem(USER_NAME_STORAGE_KEY);
+    if (!saved || typeof saved !== "string") return "";
+    return saved.trim().slice(0, MAX_USER_NAME_LENGTH);
+  });
+  const [nameInput, setNameInput] = useState(userName);
   const [gardenState, setGardenState] = useState(() => loadOrMigrateGardenState(water));
   const [lastAnalysis, setLastAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -878,6 +888,9 @@ function App() {
   const [newlyPlantedCycle, setNewlyPlantedCycle] = useState(null);
   const [isGardenFull, setIsGardenFull] = useState(false);
   const [showBloomToast, setShowBloomToast] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState("");
   const t = translations[language];
   const locale = LOCALES[language];
 
@@ -886,6 +899,16 @@ function App() {
   useEffect(() => { localStorage.setItem("water", water); }, [water]);
   useEffect(() => { localStorage.setItem(GARDEN_STATE_KEY, JSON.stringify(gardenState)); }, [gardenState]);
   useEffect(() => { localStorage.setItem(LANGUAGE_STORAGE_KEY, language); }, [language]);
+  useEffect(() => {
+    if (userName) {
+      localStorage.setItem(USER_NAME_STORAGE_KEY, userName);
+    } else {
+      localStorage.removeItem(USER_NAME_STORAGE_KEY);
+    }
+  }, [userName]);
+  useEffect(() => {
+    setNameInput(userName);
+  }, [userName]);
 
   useEffect(() => {
     if (newBloomIndex === null) return;
@@ -901,12 +924,39 @@ function App() {
     const timer = setTimeout(() => setNewlyPlantedCycle(null), 450);
     return () => clearTimeout(timer);
   }, [newlyPlantedCycle]);
+  useEffect(() => {
+    if (!resetFeedback) return;
+    const timer = setTimeout(() => setResetFeedback(""), 2400);
+    return () => clearTimeout(timer);
+  }, [resetFeedback]);
+  useEffect(() => {
+    if (!showResetDialog) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setShowResetDialog(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showResetDialog]);
 
   const currentProgress = water % BLOOM_TARGET;
   const groupedEntries = useMemo(() => groupEntriesByDate(entries, locale, t), [entries, locale, t]);
+  const gardenTitle = userName ? t.myGarden(userName) : t.yourGarden;
   const poppingDotIndex = isAnimating && water > 0
     ? (currentProgress === 0 ? BLOOM_TARGET - 1 : currentProgress - 1)
     : -1;
+  const trimmedNameInput = nameInput.trim().slice(0, MAX_USER_NAME_LENGTH);
+  const isNameUnchanged = trimmedNameInput === userName;
+
+  const saveName = () => {
+    setUserName(trimmedNameInput);
+  };
+
+  const handleNameKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveName();
+    }
+  };
 
   const handlePlantSprout = (x, y) => {
     if (gardenState.pendingSproutCycle === null) return;
@@ -1007,30 +1057,89 @@ function App() {
     setEntries((current) => current.filter((e) => e.id !== id));
   };
 
+  const handleResetGarden = () => {
+    localStorage.removeItem("water");
+    localStorage.removeItem(GARDEN_STATE_KEY);
+    setWater(0);
+    setGardenState(loadOrMigrateGardenState(0));
+    setNewBloomIndex(null);
+    setNewlyPlantedCycle(null);
+    setIsGardenFull(false);
+    setShowBloomToast(false);
+    setShowResetDialog(false);
+    setResetFeedback(t.resetCompleted);
+  };
+
   return (
     <main>
       <header className="app-header">
-        <div className="language-switcher" role="group" aria-label={t.switcherAria}>
+        <div className="header-controls">
+          <div className="language-switcher" role="group" aria-label={t.switcherAria}>
+            <button
+              type="button"
+              className={`language-switcher__button${language === "en" ? " language-switcher__button--active" : ""}`}
+              onClick={() => setLanguage("en")}
+              aria-pressed={language === "en"}
+            >
+              EN
+            </button>
+            <span className="language-switcher__separator">/</span>
+            <button
+              type="button"
+              className={`language-switcher__button${language === "ja" ? " language-switcher__button--active" : ""}`}
+              onClick={() => setLanguage("ja")}
+              aria-pressed={language === "ja"}
+            >
+              日本語
+            </button>
+          </div>
           <button
             type="button"
-            className={`language-switcher__button${language === "en" ? " language-switcher__button--active" : ""}`}
-            onClick={() => setLanguage("en")}
-            aria-pressed={language === "en"}
+            className="settings-trigger"
+            onClick={() => setShowSettings((current) => !current)}
+            aria-expanded={showSettings}
+            aria-controls="settings-panel"
+            aria-label={t.settingsAria}
           >
-            EN
-          </button>
-          <span className="language-switcher__separator">/</span>
-          <button
-            type="button"
-            className={`language-switcher__button${language === "ja" ? " language-switcher__button--active" : ""}`}
-            onClick={() => setLanguage("ja")}
-            aria-pressed={language === "ja"}
-          >
-            日本語
+            ⚙︎ {t.settings}
           </button>
         </div>
         <h1>{t.appTitle}</h1>
         <p>{t.appSubtitle}</p>
+        {showSettings && (
+          <section id="settings-panel" className="settings-panel" aria-label={t.settingsPanelTitle}>
+            <div className="settings-group">
+              <h2 className="settings-group__title">{t.profile}</h2>
+              <label className="settings-label" htmlFor="settings-name-input">{t.name}</label>
+              <div className="settings-name-row">
+                <input
+                  id="settings-name-input"
+                  className="settings-name-input"
+                  type="text"
+                  maxLength={MAX_USER_NAME_LENGTH}
+                  value={nameInput}
+                  onChange={(event) => setNameInput(event.target.value)}
+                  onBlur={saveName}
+                  onKeyDown={handleNameKeyDown}
+                />
+                <button
+                  type="button"
+                  className="settings-save-btn"
+                  onClick={saveName}
+                  disabled={isNameUnchanged}
+                >
+                  {t.save}
+                </button>
+              </div>
+            </div>
+            <div className="settings-group">
+              <h2 className="settings-group__title">{t.garden}</h2>
+              <button type="button" className="settings-reset-btn" onClick={() => setShowResetDialog(true)}>
+                {t.resetGarden}
+              </button>
+            </div>
+          </section>
+        )}
       </header>
 
       <div className="tab-nav" role="tablist" aria-label={t.viewsAria}>
@@ -1066,6 +1175,7 @@ function App() {
       >
         <h2 className="sr-only">{t.tabJournal}</h2>
         <GardenHero
+          gardenTitle={gardenTitle}
           water={water}
           newBloomIndex={newBloomIndex}
           poppingDotIndex={poppingDotIndex}
@@ -1142,6 +1252,32 @@ function App() {
           ))}
         </div>
       </section>
+      {resetFeedback && (
+        <p className="reset-feedback">{resetFeedback}</p>
+      )}
+      {showResetDialog && (
+        <div className="dialog-backdrop" role="presentation" onClick={() => setShowResetDialog(false)}>
+          <div
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-garden-title"
+            aria-describedby="reset-garden-message"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="reset-garden-title">{t.resetGardenConfirmTitle}</h2>
+            <p id="reset-garden-message">{t.resetGardenConfirmMessage}</p>
+            <div className="confirm-dialog__actions">
+              <button type="button" className="confirm-dialog__btn" onClick={() => setShowResetDialog(false)}>
+                {t.cancel}
+              </button>
+              <button type="button" className="confirm-dialog__btn confirm-dialog__btn--danger" onClick={handleResetGarden}>
+                {t.resetGarden}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
