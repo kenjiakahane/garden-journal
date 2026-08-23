@@ -906,9 +906,6 @@ function App() {
       localStorage.removeItem(USER_NAME_STORAGE_KEY);
     }
   }, [userName]);
-  useEffect(() => {
-    setNameInput(userName);
-  }, [userName]);
 
   useEffect(() => {
     if (newBloomIndex === null) return;
@@ -949,6 +946,7 @@ function App() {
 
   const saveName = () => {
     setUserName(trimmedNameInput);
+    setNameInput(trimmedNameInput);
   };
 
   const handleNameKeyDown = (event) => {
@@ -1096,7 +1094,13 @@ function App() {
           <button
             type="button"
             className="settings-trigger"
-            onClick={() => setShowSettings((current) => !current)}
+            onClick={() => {
+              setShowSettings((current) => {
+                const next = !current;
+                if (next) setNameInput(userName);
+                return next;
+              });
+            }}
             aria-expanded={showSettings}
             aria-controls="settings-panel"
             aria-label={t.settingsAria}
