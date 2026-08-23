@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { analyzeJournal } from "./services/analyzeJournal";
+import "./App.css";
 
 function App() {
   const [text, setText] = useState(() => {
