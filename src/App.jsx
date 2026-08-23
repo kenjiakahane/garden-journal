@@ -4,8 +4,8 @@ import "./App.css";
 
 const BLOOM_TARGET = 5; // water drops needed to reach bloom; also the number of progress dots
 
-const GARDEN_COLS = 16;
-const GARDEN_ROWS = 10;
+const GARDEN_COLS = 9;
+const GARDEN_ROWS = 6;
 
 const DAILY_SEEDS = [
   "What made you smile today?",
@@ -128,16 +128,16 @@ function getGardenStageFlowerCount(bloomCount) {
 function buildGardenScene({ bloomCount, progress, seed }) {
   const flowerSpots = seededShuffle(
     [
-      { x: 5, y: 3 },
-      { x: 9, y: 3 },
+      { x: 2, y: 1 },
+      { x: 5, y: 1 },
+      { x: 7, y: 2 },
+      { x: 3, y: 3 },
+      { x: 6, y: 3 },
+      { x: 1, y: 3 },
+      { x: 4, y: 2 },
       { x: 7, y: 4 },
-      { x: 10, y: 5 },
-      { x: 6, y: 5 },
-      { x: 8, y: 6 },
-      { x: 4, y: 4 },
-      { x: 11, y: 4 },
-      { x: 6, y: 2 },
-      { x: 9, y: 6 },
+      { x: 2, y: 4 },
+      { x: 5, y: 3 },
     ],
     hashSeed(seed),
   );
@@ -149,17 +149,17 @@ function buildGardenScene({ bloomCount, progress, seed }) {
     palette: index % 4,
   }));
   const usedSpots = new Set(flowers.map((spot) => `${spot.x},${spot.y}`));
-  const nextSproutSpot = flowerSpots.find((spot) => !usedSpots.has(`${spot.x},${spot.y}`)) || { x: 7, y: 5 };
+  const nextSproutSpot = flowerSpots.find((spot) => !usedSpots.has(`${spot.x},${spot.y}`)) || { x: 4, y: 3 };
 
   const stones = [];
-  if (bloomCount >= 2) stones.push({ x: 3, y: 7 });
-  if (bloomCount >= 4) stones.push({ x: 12, y: 7 });
-  if (bloomCount >= 7) stones.push({ x: 11, y: 2 });
+  if (bloomCount >= 2) stones.push({ x: 0, y: 4 });
+  if (bloomCount >= 4) stones.push({ x: 8, y: 3 });
+  if (bloomCount >= 7) stones.push({ x: 0, y: 2 });
 
   const pathTiles = bloomCount >= 5
-    ? [{ x: 6, y: 7 }, { x: 7, y: 7 }, { x: 8, y: 7 }, { x: 9, y: 7 }]
+    ? [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }]
     : [];
-  const bush = bloomCount >= 8 ? { x: 4, y: 2 } : null;
+  const bush = bloomCount >= 8 ? { x: 1, y: 2 } : null;
   const sprout = progress > 0 || bloomCount === 0 ? nextSproutSpot : null;
 
   return { flowers, stones, pathTiles, bush, sprout };
@@ -202,7 +202,7 @@ function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint
         {Array.from({ length: GARDEN_COLS * GARDEN_ROWS }, (_, i) => {
           const x = i % GARDEN_COLS;
           const y = Math.floor(i / GARDEN_COLS);
-          const isSoil = x >= 3 && x <= 12 && y >= 2 && y <= 7;
+          const isSoil = x >= 1 && x <= 7 && y >= 1 && y <= 4;
           const isPath = scene.pathTiles.some((tile) => tile.x === x && tile.y === y);
           const tileClass = isPath ? "tile tile--path" : isSoil ? "tile tile--soil" : "tile tile--grass";
 
