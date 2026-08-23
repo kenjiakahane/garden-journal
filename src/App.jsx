@@ -88,12 +88,12 @@ function getDailySeed() {
 }
 
 function hashSeed(seed) {
-  let hash = 2166136261;
+  let hash = 2166136261 >>> 0;
   for (let i = 0; i < seed.length; i += 1) {
     hash ^= seed.charCodeAt(i);
-    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+    hash = Math.imul(hash, 16777619) >>> 0;
   }
-  return Math.abs(hash >>> 0);
+  return hash;
 }
 
 function seededShuffle(items, seed) {
@@ -208,13 +208,6 @@ function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint
 
           return <span key={`tile-${x}-${y}`} className={tileClass} />;
         })}
-        {scene.pathTiles.map((tile) => (
-          <span
-            key={`path-edge-${tile.x}-${tile.y}`}
-            className="pixel-item pixel-item--path-edge"
-            style={{ gridColumn: tile.x + 1, gridRow: tile.y + 1 }}
-          />
-        ))}
         {scene.stones.map((stone) => (
           <span
             key={`stone-${stone.x}-${stone.y}`}
@@ -525,7 +518,7 @@ function ExploreGardenCard({ garden }) {
       <div className="public-garden-card__scene">
         <PixelGarden
           bloomCount={garden.blooms}
-          progress={garden.blooms % BLOOM_TARGET}
+          progress={0}
           seed={`explore-${garden.id}`}
           compact
           tone={garden.tone}

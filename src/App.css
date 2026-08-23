@@ -252,21 +252,27 @@ header p {
 }
 
 .tile--grass {
-  background:
-    linear-gradient(90deg, var(--scene-grass-a) 0 50%, var(--scene-grass-b) 50% 100%),
-    linear-gradient(var(--scene-grass-b) 0 50%, var(--scene-grass-a) 50% 100%);
+  background-color: var(--scene-grass-a);
+  background: repeating-conic-gradient(
+    var(--scene-grass-a) 0 25%,
+    var(--scene-grass-b) 0 50%
+  ) 50% / 100% 100%;
 }
 
 .tile--soil {
-  background:
-    linear-gradient(90deg, var(--scene-soil-a) 0 50%, var(--scene-soil-b) 50% 100%),
-    linear-gradient(var(--scene-soil-b) 0 50%, var(--scene-soil-a) 50% 100%);
+  background-color: var(--scene-soil-a);
+  background: repeating-conic-gradient(
+    var(--scene-soil-a) 0 25%,
+    var(--scene-soil-b) 0 50%
+  ) 50% / 100% 100%;
 }
 
 .tile--path {
-  background:
-    linear-gradient(90deg, var(--scene-path-a) 0 50%, var(--scene-path-b) 50% 100%),
-    linear-gradient(var(--scene-path-b) 0 50%, var(--scene-path-a) 50% 100%);
+  background-color: var(--scene-path-a);
+  background: repeating-conic-gradient(
+    var(--scene-path-a) 0 25%,
+    var(--scene-path-b) 0 50%
+  ) 50% / 100% 100%;
 }
 
 .pixel-item {
@@ -312,11 +318,6 @@ header p {
 .pixel-item--flower-new {
   transform-origin: 50% 86%;
   animation: pixelBloomPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.pixel-item--path-edge {
-  margin: 0 42% 68%;
-  background: rgba(150, 134, 109, 0.75);
 }
 
 .pixel-item--bush {
