@@ -17,6 +17,7 @@
   --week-dot-empty: #DCE7DC;
   --week-dot-filled: #7CA683;
   --week-dot-today: #4E7B55;
+  --journal-day-heading: #54685A;
   --focus-ring:   #7CB880;
   --shadow-card:  0 2px 12px rgba(0,0,0,0.06);
   --shadow-hero:  0 4px 20px rgba(0,0,0,0.06);
@@ -269,7 +270,7 @@ textarea:focus {
   font-size: 13px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #54685a;
+  color: var(--journal-day-heading);
 }
 
 /* ── Journal Card ─────────────────────────────────── */

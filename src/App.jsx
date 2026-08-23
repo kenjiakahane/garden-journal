@@ -209,7 +209,7 @@ function WeeklyJournalDots({ entries }) {
   const weeklyStatus = getWeeklyJournalStatus(entries);
 
   return (
-    <section className="weekly-journal" aria-label="This week journal entries">
+    <section className="weekly-journal" aria-label="This week's journal entries">
       <p className="weekly-journal__label">This week</p>
       <div className="weekly-journal__row">
         {weeklyStatus.map((day) => (
