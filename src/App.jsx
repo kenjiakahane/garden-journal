@@ -21,7 +21,7 @@ const DAILY_SEEDS = [
   "What has been on your mind lately?",
 ];
 
-const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+const WEEKDAY_LABELS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
 function getDailySeed() {
   const now = new Date();
