@@ -420,6 +420,12 @@ header p {
   position: relative;
 }
 
+.water-rule-copy {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #6a756d;
+}
+
 textarea {
   width: 100%;
   min-height: 140px;

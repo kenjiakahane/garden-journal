@@ -21,7 +21,8 @@ export async function analyzeJournal(text) {
       kindness: 0,
       reflection: 0,
       growth: 0,
-      water: 0,
+      safetyConcern: false,
+      water: 1,
       error: true,
     };
   }
