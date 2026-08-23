@@ -92,11 +92,11 @@ function getWeeklyJournalStatus(entries, referenceDate = new Date()) {
     }
   });
 
-  return weekDays.map((date, index) => {
+  return weekDays.map((date) => {
     const key = getLocalDateKey(date);
     return {
       key,
-      label: WEEKDAY_LABELS[index],
+      label: WEEKDAY_LABELS[date.getDay()],
       filled: entryDateKeys.has(key),
       isToday: key === todayKey,
     };
