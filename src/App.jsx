@@ -16,6 +16,23 @@ const GARDEN_COLS = 9;
 const GARDEN_ROWS = 6;
 
 const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺"];
+
+// ── Flower color influence probabilities ──────────────
+const NEIGHBOR_COLOR_CHANCE = 0.6;
+const NORMAL_COLOR_CHANCE = 0.3;
+const RARE_COLOR_CHANCE = 0.1;
+
+const NORMAL_FLOWER_COLORS = ["pink", "yellow", "white", "purple"];
+const RARE_FLOWER_COLORS = ["blue"];
+
+const FLOWER_COLOR_MAP = {
+  pink: "#E991B4",
+  yellow: "#F5C542",
+  white: "#E0D9CF",
+  purple: "#9B6FD4",
+  blue: "#5B9BF0",
+};
+
 const GARDEN_STATE_KEY = "gardenState";
 const WATER_STORAGE_KEY = "water";
 const USER_NAME_STORAGE_KEY = "gardenJournalUserName";
@@ -158,6 +175,44 @@ function toCellKey(x, y) {
   return `${x},${y}`;
 }
 
+function getNeighborPlants(plant, bloomedPlants) {
+  const { x, y } = plant;
+  const directions = [
+    { x, y: y - 1 },
+    { x, y: y + 1 },
+    { x: x - 1, y },
+    { x: x + 1, y },
+  ];
+  return bloomedPlants.filter(
+    (p) => p.color !== null && directions.some((d) => d.x === p.x && d.y === p.y),
+  );
+}
+
+function determineBloomColor({ neighbors }) {
+  const coloredNeighbors = neighbors.filter((n) => n.color !== null);
+  if (coloredNeighbors.length > 0) {
+    const roll = Math.random();
+    if (roll < NEIGHBOR_COLOR_CHANCE) {
+      const source = coloredNeighbors[Math.floor(Math.random() * coloredNeighbors.length)];
+      return { color: source.color, isRare: false, source: "neighbor" };
+    }
+    if (roll < NEIGHBOR_COLOR_CHANCE + NORMAL_COLOR_CHANCE) {
+      const color = NORMAL_FLOWER_COLORS[Math.floor(Math.random() * NORMAL_FLOWER_COLORS.length)];
+      return { color, isRare: false, source: "normal" };
+    }
+    const color = RARE_FLOWER_COLORS[Math.floor(Math.random() * RARE_FLOWER_COLORS.length)];
+    return { color, isRare: true, source: "rare" };
+  }
+  // No colored neighbors: 90% normal, 10% rare
+  const roll = Math.random();
+  if (roll < 1 - RARE_COLOR_CHANCE) {
+    const color = NORMAL_FLOWER_COLORS[Math.floor(Math.random() * NORMAL_FLOWER_COLORS.length)];
+    return { color, isRare: false, source: "normal" };
+  }
+  const color = RARE_FLOWER_COLORS[Math.floor(Math.random() * RARE_FLOWER_COLORS.length)];
+  return { color, isRare: true, source: "rare" };
+}
+
 function getGardenDecorations(bloomCount) {
   const stones = [];
   if (bloomCount >= 2) stones.push({ x: 0, y: 4 });
@@ -183,12 +238,15 @@ function normalizePlant(raw) {
   const flowerType = typeof raw.flowerType === "string" && raw.flowerType
     ? raw.flowerType
     : FLOWER_CYCLE[cycle % FLOWER_CYCLE.length];
+  const validColors = [...NORMAL_FLOWER_COLORS, ...RARE_FLOWER_COLORS];
+  const color = typeof raw.color === "string" && validColors.includes(raw.color) ? raw.color : null;
   return {
     id: typeof raw.id === "string" ? raw.id : `plant-${cycle}`,
     cycle,
     x,
     y,
     flowerType,
+    color,
   };
 }
 
@@ -481,11 +539,13 @@ function PixelGarden({
             key={`plant-${plant.cycle}`}
             className={`garden-emoji${plant.cycle === newlyPlantedCycle ? " garden-emoji--planted" : ""}`}
             aria-hidden="true"
+            data-flower-color={plant.stage === "flower" && plant.color ? plant.color : undefined}
             style={{
               gridColumn: plant.x + 1,
               gridRow: plant.y + 1,
               fontSize: getEmojiSize(plant.y, compact),
               transform: `translate(${emojiOffset(plant.x, plant.y, gardenSeed, "x")}%, ${emojiOffset(plant.x, plant.y, gardenSeed, "y")}%)`,
+              ...(plant.stage === "flower" && plant.color ? { "--flower-color-dot": FLOWER_COLOR_MAP[plant.color] } : {}),
             }}
           >
             {plant.emoji}
@@ -892,6 +952,7 @@ function App() {
   const [newlyPlantedCycle, setNewlyPlantedCycle] = useState(null);
   const [isGardenFull, setIsGardenFull] = useState(false);
   const [showBloomToast, setShowBloomToast] = useState(false);
+  const [rareBloomToastActive, setRareBloomToastActive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetFeedback, setResetFeedback] = useState("");
@@ -920,6 +981,7 @@ function App() {
     const timer = setTimeout(() => {
       setNewBloomIndex(null);
       setShowBloomToast(false);
+      setRareBloomToastActive(false);
     }, 2400);
     return () => clearTimeout(timer);
   }, [newBloomIndex]);
