@@ -1176,3 +1176,89 @@ textarea:focus {
   from { transform: scale(0.8); opacity: 0; }
   to   { transform: scale(1); opacity: 1; }
 }
+
+/* ── Journal Completed State ──────────────────────── */
+.journal-completed-state {
+  text-align: center;
+  padding: 24px 20px;
+  background: var(--hero-bg);
+  border: 1px solid var(--hero-border);
+  border-radius: 16px;
+  margin: 12px 0 16px;
+}
+
+.journal-completed-state__heading {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #2d4a31);
+  margin: 0 0 8px;
+}
+
+.journal-completed-state__body {
+  font-size: 14px;
+  color: var(--text-secondary, #5a7a5c);
+  margin: 0;
+}
+
+/* ── Developer Settings Section ───────────────────── */
+.settings-group--developer {
+  border-top: 1px solid var(--hero-border, #d4e0d4);
+  padding-top: 14px;
+  margin-top: 4px;
+  opacity: 0.72;
+}
+
+.settings-group__title--developer {
+  font-size: 11px !important;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #5a7a5c) !important;
+}
+
+.settings-mode-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.settings-mode-fieldset legend {
+  font-size: 13px;
+  color: var(--text-secondary, #5a7a5c);
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.settings-mode-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.settings-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary, #2d4a31);
+  cursor: pointer;
+}
+
+.settings-dev-explanation {
+  font-size: 11px;
+  color: var(--text-secondary, #5a7a5c);
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+/* ── DEV Badge ────────────────────────────────────── */
+.dev-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: #e07a3a;
+  border-radius: 4px;
+  padding: 2px 5px;
+  vertical-align: middle;
+  align-self: center;
+}
