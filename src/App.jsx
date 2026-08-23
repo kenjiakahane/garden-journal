@@ -390,7 +390,7 @@ function ExploreGardenCard({ garden }) {
       <h3 className="public-garden-card__title">{garden.name}&apos;s Garden</h3>
       <div className="public-garden-card__scene" aria-hidden="true">
         {garden.flowers.map((row, index) => (
-          <p key={index} className="public-garden-card__row">
+          <p key={`${garden.id}-${index}`} className="public-garden-card__row">
             {row}
           </p>
         ))}
@@ -494,7 +494,7 @@ function App() {
         <p>Write. Reflect. Grow.</p>
       </header>
 
-      <nav className="tab-nav" role="tablist" aria-label="Views">
+      <div className="tab-nav" role="tablist" aria-label="Views">
         <button
           id="tab-journal"
           type="button"
@@ -517,7 +517,7 @@ function App() {
         >
           Explore
         </button>
-      </nav>
+      </div>
 
       <section
         id="panel-journal"
@@ -525,56 +525,57 @@ function App() {
         aria-labelledby="tab-journal"
         hidden={activeTab !== TABS.JOURNAL}
       >
-          <GardenHero
-            water={water}
-            plant={plant}
-            isAnimating={isAnimating}
-            newBloomIndex={newBloomIndex}
-            poppingDotIndex={poppingDotIndex}
+        <h2 className="sr-only">Journal</h2>
+        <GardenHero
+          water={water}
+          plant={plant}
+          isAnimating={isAnimating}
+          newBloomIndex={newBloomIndex}
+          poppingDotIndex={poppingDotIndex}
+        />
+
+        {showBloomToast && (
+          <p className="bloom-toast">A new flower bloomed! 🌸</p>
+        )}
+
+        <section className="write-section">
+          <TodaySeed />
+          <WeeklyJournalDots entries={entries} />
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What's on your mind?"
           />
+          <div className="water-btn-wrap">
+            <WaterDrop animating={isAnimating} />
+            <button
+              className="btn-primary"
+              onClick={handleSave}
+              disabled={isSaving || !text.trim()}
+            >
+              Water the garden 💧
+            </button>
+          </div>
+          <AnalysisCard analysis={lastAnalysis} visible={showAnalysis} />
+        </section>
 
-          {showBloomToast && (
-            <p className="bloom-toast">A new flower bloomed! 🌸</p>
-          )}
-
-          <section className="write-section">
-            <TodaySeed />
-            <WeeklyJournalDots entries={entries} />
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="What's on your mind?"
-            />
-            <div className="water-btn-wrap">
-              <WaterDrop animating={isAnimating} />
-              <button
-                className="btn-primary"
-                onClick={handleSave}
-                disabled={isSaving || !text.trim()}
-              >
-                Water the garden 💧
-              </button>
+        {entries.length > 0 && (
+          <section className="journal-section">
+            <h2 className="section-label dot-label">Past reflections</h2>
+            <div className="journal-groups">
+              {groupedEntries.map((group) => (
+                <section key={group.key} className="journal-day-group">
+                  <h3 className="journal-day-heading">{group.label}</h3>
+                  <div className="cards-grid">
+                    {group.entries.map((entry) => (
+                      <JournalEntry key={entry.id} entry={entry} onDelete={handleDelete} />
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
-            <AnalysisCard analysis={lastAnalysis} visible={showAnalysis} />
           </section>
-
-          {entries.length > 0 && (
-            <section className="journal-section">
-              <h2 className="section-label dot-label">Past reflections</h2>
-              <div className="journal-groups">
-                {groupedEntries.map((group) => (
-                  <section key={group.key} className="journal-day-group">
-                    <h3 className="journal-day-heading">{group.label}</h3>
-                    <div className="cards-grid">
-                      {group.entries.map((entry) => (
-                        <JournalEntry key={entry.id} entry={entry} onDelete={handleDelete} />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </section>
-          )}
+        )}
       </section>
 
       <section
