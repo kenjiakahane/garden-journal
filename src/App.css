@@ -22,6 +22,10 @@
   --today-seed-date: #6D756E;
   --weekly-day-label: #97A097;
   --weekly-day-label-today: #66736A;
+  --motif-dot-green: #8BAF8E;
+  --motif-dot-pink: #E9D5D1;
+  --motif-dot-beige: #E6DBCC;
+  --motif-dot-yellow: #F3EDCC;
   --focus-ring:   #7CB880;
   --shadow-card:  0 2px 12px rgba(0,0,0,0.06);
   --shadow-hero:  0 4px 20px rgba(0,0,0,0.06);
@@ -90,6 +94,66 @@ header p {
   margin-bottom: 20px;
   text-align: center;
   box-shadow: var(--shadow-hero);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-dot {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.2;
+}
+
+.hero-dot--1 {
+  width: 4px;
+  height: 4px;
+  background: var(--motif-dot-green);
+  left: 12%;
+  top: 22%;
+}
+
+.hero-dot--2 {
+  width: 5px;
+  height: 5px;
+  background: var(--motif-dot-pink);
+  left: 78%;
+  top: 18%;
+}
+
+.hero-dot--3 {
+  width: 3px;
+  height: 3px;
+  background: var(--motif-dot-beige);
+  left: 20%;
+  bottom: 22%;
+}
+
+.hero-dot--4 {
+  width: 4px;
+  height: 4px;
+  background: var(--motif-dot-yellow);
+  right: 18%;
+  bottom: 30%;
+}
+
+.hero-dot--5 {
+  width: 2px;
+  height: 2px;
+  background: var(--motif-dot-green);
+  right: 33%;
+  top: 40%;
 }
 
 .plant-emoji {
@@ -113,15 +177,35 @@ header p {
 }
 
 .dot {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  background: var(--dot-empty);
-  transition: background 0.3s ease;
+  border: 1.5px solid var(--dot-empty);
+  background: transparent;
+  transform: scale(0.92);
+  transition: background 0.22s ease, border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .dot--filled {
   background: var(--dot-filled);
+  border-color: var(--dot-filled);
+  box-shadow: 0 1px 2px rgba(56, 142, 60, 0.25);
+  transform: scale(1);
+}
+
+.dot--pop {
+  animation: dotPop 0.24s ease-out;
+}
+
+@keyframes dotPop {
+  0% {
+    transform: scale(0.84);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .bloom-message {
@@ -251,6 +335,33 @@ textarea:focus {
   font-size: 13px;
 }
 
+.dot-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot-label::before {
+  content: "";
+  display: block;
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--motif-dot-green);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.65);
+}
+
+.dot-label--seed::before {
+  background: var(--motif-dot-beige);
+}
+
+.dot-label--week::before {
+  background: var(--motif-dot-pink);
+}
+
+
+
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -267,6 +378,8 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
+  padding-left: 18px;
 }
 
 .journal-day-heading {
@@ -275,6 +388,19 @@ textarea:focus {
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--journal-day-heading);
+  position: relative;
+}
+
+.journal-day-heading::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--motif-dot-green);
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* ── Journal Card ─────────────────────────────────── */
@@ -386,6 +512,15 @@ textarea:focus {
   .plant-emoji { font-size: 72px; }
   .cards-grid { grid-template-columns: 1fr; }
   main { padding: 32px 16px 60px; }
+  .journal-day-group {
+    padding-left: 14px;
+  }
+  .journal-day-heading::before {
+    left: -14px;
+  }
+  .weekly-journal__row {
+    gap: 4px;
+  }
 }
 
 /* ── Today's Seed ─────────────────────────────────── */
@@ -402,7 +537,7 @@ textarea:focus {
 }
 
 .today-seed__label {
-  display: block;
+  display: inline-flex;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -453,14 +588,18 @@ textarea:focus {
 }
 
 .weekly-journal__dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--week-dot-empty);
+  background: transparent;
+  border: 1px solid var(--week-dot-empty);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
 .weekly-journal__dot--filled {
   background: var(--week-dot-filled);
+  border-color: var(--week-dot-filled);
+  transform: scale(1.03);
 }
 
 .weekly-journal__day--today .weekly-journal__day-label {
@@ -468,7 +607,11 @@ textarea:focus {
 }
 
 .weekly-journal__dot--today {
-  box-shadow: 0 0 0 2px rgba(78, 123, 85, 0.2);
+  box-shadow: 0 0 0 1.5px rgba(78, 123, 85, 0.28);
+}
+
+.weekly-journal__day--today .weekly-journal__dot:not(.weekly-journal__dot--filled) {
+  background: rgba(220, 231, 220, 0.45);
 }
 
 /* ── Bloom Toast ──────────────────────────────────── */
