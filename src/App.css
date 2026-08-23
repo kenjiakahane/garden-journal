@@ -352,3 +352,56 @@ textarea:focus {
   .cards-grid { grid-template-columns: 1fr; }
   main { padding: 32px 16px 60px; }
 }
+
+/* ── Today's Seed ─────────────────────────────────── */
+.today-seed {
+  margin-bottom: 14px;
+}
+
+.today-seed__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.today-seed__prompt {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #4a6741;
+  line-height: 1.45;
+}
+
+/* ── Bloom Toast ──────────────────────────────────── */
+.bloom-toast {
+  text-align: center;
+  font-size: 15px;
+  color: #3A6B3E;
+  margin: -8px auto 14px;
+  padding: 8px 16px;
+  background: var(--hero-bg);
+  border: 1px solid var(--hero-border);
+  border-radius: 999px;
+  width: fit-content;
+  animation: toastAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes toastAppear {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ── New Flower Bloom Animation ───────────────────── */
+.past-flower--new {
+  animation: newBloom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes newBloom {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
