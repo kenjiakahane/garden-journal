@@ -6,6 +6,28 @@ const BLOOM_TARGET = 5; // water drops needed to reach bloom; also the number of
 
 const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺", "💐"];
 
+const DAILY_SEEDS = [
+  "What made you smile today?",
+  "What are you grateful for today?",
+  "What surprised you today?",
+  "What felt difficult today?",
+  "What did you learn today?",
+  "Who helped you today?",
+  "What are you proud of today?",
+  "What would you like to remember about today?",
+  "What gave you energy today?",
+  "What would you do differently tomorrow?",
+  "What small thing went well today?",
+  "What has been on your mind lately?",
+];
+
+function getDailySeed() {
+  const now = new Date();
+  const dayIndex =
+    now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  return DAILY_SEEDS[dayIndex % DAILY_SEEDS.length];
+}
+
 function getPastFlowers(bloomCount) {
   return Array.from({ length: bloomCount }, (_, i) => FLOWER_CYCLE[i % FLOWER_CYCLE.length]);
 }
@@ -20,7 +42,7 @@ function ProgressDots({ progress }) {
   );
 }
 
-function GardenHero({ water, plant, isAnimating }) {
+function GardenHero({ water, plant, isAnimating, newBloomIndex }) {
   const bloomCount = Math.floor(water / BLOOM_TARGET);
   const progress = water % BLOOM_TARGET;
   const justBloomed = water > 0 && progress === 0;
@@ -32,7 +54,12 @@ function GardenHero({ water, plant, isAnimating }) {
       {pastFlowers.length > 0 && (
         <div className="past-flowers" aria-label={`${bloomCount} flower${bloomCount === 1 ? "" : "s"} bloomed`}>
           {pastFlowers.map((f, i) => (
-            <span key={i} className="past-flower">{f}</span>
+            <span
+              key={i}
+              className={`past-flower${i === newBloomIndex ? " past-flower--new" : ""}`}
+            >
+              {f}
+            </span>
           ))}
         </div>
       )}
@@ -53,24 +80,29 @@ function AnalysisCard({ analysis, visible }) {
   if (!analysis || !visible) return null;
 
   const getMessage = () => {
-    if (analysis.error) return "🌙 Entry saved — the garden rests today.";
-    if (analysis.water <= 0) return "🌙 Your entry was saved. The garden is resting today.";
+    if (analysis.error) return "🌙 Your reflection is safely planted.";
+    if (analysis.water <= 0) return "🌙 Your reflection is safely planted.";
 
-    const traits = [];
-    if (analysis.gratitude > 0) traits.push("gratitude");
-    if (analysis.kindness > 0) traits.push("kindness");
-    if (analysis.reflection > 0) traits.push("reflection");
-    if (analysis.growth > 0) traits.push("growth");
-
-    if (traits.length > 0) {
-      return `🌼 ${traits[0].charAt(0).toUpperCase() + traits[0].slice(1)} found in your reflection.`;
-    }
+    if (analysis.gratitude > 0) return "🌼 Gratitude showed up in your reflection.";
+    if (analysis.kindness > 0) return "🌿 A little kindness found its way into today.";
+    if (analysis.reflection > 0) return "🌱 You took a moment to look inward.";
+    if (analysis.growth > 0) return "🌷 There is a little growth in these words.";
     return "💧 Your words gave water to the garden.";
   };
 
   return (
     <div className={`analysis-card ${visible ? "analysis-card--visible" : ""}`}>
       {getMessage()}
+    </div>
+  );
+}
+
+function TodaySeed() {
+  const seed = getDailySeed();
+  return (
+    <div className="today-seed">
+      <span className="today-seed__label">Today&apos;s seed</span>
+      <p className="today-seed__prompt">{seed}</p>
     </div>
   );
 }
@@ -147,10 +179,21 @@ function App() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [newBloomIndex, setNewBloomIndex] = useState(null);
+  const [showBloomToast, setShowBloomToast] = useState(false);
 
   useEffect(() => { sessionStorage.setItem("journalDraft", text); }, [text]);
   useEffect(() => { localStorage.setItem("journalEntries", JSON.stringify(entries)); }, [entries]);
   useEffect(() => { localStorage.setItem("water", water); }, [water]);
+
+  useEffect(() => {
+    if (newBloomIndex === null) return;
+    const timer = setTimeout(() => {
+      setNewBloomIndex(null);
+      setShowBloomToast(false);
+    }, 2400);
+    return () => clearTimeout(timer);
+  }, [newBloomIndex]);
 
   const currentProgress = water % BLOOM_TARGET;
   const plant = currentProgress >= 2 ? "🌿" : "🌱";
@@ -173,7 +216,16 @@ function App() {
     setEntries((current) => [newEntry, ...current]);
 
     if (analysis.water > 0) {
-      setWater((current) => current + analysis.water);
+      setWater((current) => {
+        const prevBloomCount = Math.floor(current / BLOOM_TARGET);
+        const nextWater = current + analysis.water;
+        const nextBloomCount = Math.floor(nextWater / BLOOM_TARGET);
+        if (nextBloomCount > prevBloomCount) {
+          setNewBloomIndex(nextBloomCount - 1);
+          setShowBloomToast(true);
+        }
+        return nextWater;
+      });
     }
 
     setText("");
@@ -199,9 +251,14 @@ function App() {
         <p>Write. Reflect. Grow.</p>
       </header>
 
-      <GardenHero water={water} plant={plant} isAnimating={isAnimating} />
+      <GardenHero water={water} plant={plant} isAnimating={isAnimating} newBloomIndex={newBloomIndex} />
+
+      {showBloomToast && (
+        <p className="bloom-toast">A new flower bloomed! 🌸</p>
+      )}
 
       <section className="write-section">
+        <TodaySeed />
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
