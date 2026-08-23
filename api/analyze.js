@@ -13,32 +13,57 @@ export default function handler(req, res) {
     });
   }
 
-  const lowerText = text.toLowerCase();
+  const normalizedText = text
+    .toLowerCase()
+    .normalize("NFKC")
+    .replace(/\s+/g, " ")
+    .trim();
 
   const categories = {
-    gratitude: ["grateful", "thank", "thanks"],
-    kindness: ["helped", "kind", "support"],
-    reflection: ["realized", "learned", "noticed"],
-    growth: ["improved", "progress", "better"],
+    gratitude: [
+      "grateful", "gratitude", "thank", "thanks", "thankful", "appreciate",
+      "ありがとう", "感謝", "ありがたい",
+    ],
+    kindness: [
+      "help", "helped", "support", "supported", "kind", "cared",
+      "手伝", "助け", "支え", "親切", "優しい",
+    ],
+    reflection: [
+      "realized", "learned", "noticed", "reflect", "understood", "looking back",
+      "気づ", "学ん", "振り返", "考え", "思った",
+    ],
+    growth: [
+      "improved", "progress", "better", "growth", "grew", "challenge",
+      "成長", "改善", "前進", "挑戦", "できるよう",
+    ],
+  };
+
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const isAsciiPhrase = (keyword) => /^[a-z\s]+$/.test(keyword);
+
+  const keywordMatched = (source, keyword) => {
+    if (isAsciiPhrase(keyword)) {
+      const regex = new RegExp(`\\b${escapeRegex(keyword)}\\b`, "i");
+      return regex.test(source);
+    }
+    return source.includes(keyword);
   };
 
   const scores = {};
 
   for (const [category, words] of Object.entries(categories)) {
-    scores[category] = words.some((word) =>
-      lowerText.includes(word)
-    )
-      ? 1
-      : 0;
+    const matchCount = words.reduce((count, word) => {
+      return keywordMatched(normalizedText, word) ? count + 1 : count;
+    }, 0);
+
+    scores[category] = matchCount >= 2 ? 2 : matchCount >= 1 ? 1 : 0;
   }
 
-  const matchedCount = Object.values(scores).filter(
-    (score) => score > 0
-  ).length;
+  const totalScore = Object.values(scores).reduce((sum, value) => sum + value, 0);
 
   const water =
-    matchedCount >= 3 ? 2 :
-    matchedCount >= 1 ? 1 :
+    totalScore >= 4 ? 2 :
+    totalScore >= 1 ? 1 :
     0;
 
   return res.status(200).json({
