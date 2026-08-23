@@ -344,7 +344,9 @@ function App() {
   const currentProgress = water % BLOOM_TARGET;
   const plant = currentProgress >= 2 ? "🌿" : "🌱";
   const groupedEntries = useMemo(() => groupEntriesByDate(entries), [entries]);
-  const poppingDotIndex = isAnimating && currentProgress > 0 ? currentProgress - 1 : -1;
+  const poppingDotIndex = isAnimating && water > 0
+    ? (currentProgress === 0 ? BLOOM_TARGET - 1 : currentProgress - 1)
+    : -1;
 
   const handleSave = async () => {
     if (!text.trim() || isSaving) return;
@@ -434,7 +436,7 @@ function App() {
 
       {entries.length > 0 && (
         <section className="journal-section">
-          <h2 className="section-label dot-label dot-label--journal">Past reflections</h2>
+          <h2 className="section-label dot-label">Past reflections</h2>
           <div className="journal-groups">
             {groupedEntries.map((group) => (
               <section key={group.key} className="journal-day-group">

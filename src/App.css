@@ -343,6 +343,8 @@ textarea:focus {
 
 .dot-label::before {
   content: "";
+  display: block;
+  flex-shrink: 0;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -358,9 +360,7 @@ textarea:focus {
   background: var(--motif-dot-pink);
 }
 
-.dot-label--journal::before {
-  background: var(--motif-dot-green);
-}
+
 
 .cards-grid {
   display: grid;
@@ -401,20 +401,6 @@ textarea:focus {
   left: -18px;
   top: 50%;
   transform: translateY(-50%);
-}
-
-.journal-day-group::after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 18px;
-  bottom: 6px;
-  width: 1px;
-  background: linear-gradient(to bottom, rgba(139, 175, 142, 0.35), rgba(139, 175, 142, 0.08));
-}
-
-.journal-day-group:last-child::after {
-  bottom: 26px;
 }
 
 /* ── Journal Card ─────────────────────────────────── */
@@ -531,9 +517,6 @@ textarea:focus {
   }
   .journal-day-heading::before {
     left: -14px;
-  }
-  .journal-day-group::after {
-    left: 3px;
   }
   .weekly-journal__row {
     gap: 4px;
