@@ -69,8 +69,8 @@ export const translations = {
     switcherAria: "Language",
   },
   ja: {
-    languageName: "English",
-    altLanguageName: "日本語",
+    languageName: "日本語",
+    altLanguageName: "English",
     appTitle: "Garden Journal",
     appSubtitle: "書く。振り返る。育てる。",
     viewsAria: "表示切り替え",
