@@ -143,17 +143,20 @@ function groupEntriesByDate(entries) {
   return groups;
 }
 
-function ProgressDots({ progress }) {
+function ProgressDots({ progress, poppingIndex }) {
   return (
     <div className="progress-dots" aria-label={`${progress} of ${BLOOM_TARGET} drops`}>
       {Array.from({ length: BLOOM_TARGET }, (_, i) => (
-        <span key={i} className={i < progress ? "dot dot--filled" : "dot"} />
+        <span
+          key={i}
+          className={`dot${i < progress ? " dot--filled" : ""}${i === poppingIndex ? " dot--pop" : ""}`}
+        />
       ))}
     </div>
   );
 }
 
-function GardenHero({ water, plant, isAnimating, newBloomIndex }) {
+function GardenHero({ water, plant, isAnimating, newBloomIndex, poppingDotIndex }) {
   const bloomCount = Math.floor(water / BLOOM_TARGET);
   const progress = water % BLOOM_TARGET;
   const justBloomed = water > 0 && progress === 0;
@@ -162,6 +165,13 @@ function GardenHero({ water, plant, isAnimating, newBloomIndex }) {
 
   return (
     <section className="hero-section">
+      <div className="hero-dots" aria-hidden="true">
+        <span className="hero-dot hero-dot--1" />
+        <span className="hero-dot hero-dot--2" />
+        <span className="hero-dot hero-dot--3" />
+        <span className="hero-dot hero-dot--4" />
+        <span className="hero-dot hero-dot--5" />
+      </div>
       {pastFlowers.length > 0 && (
         <div className="past-flowers" aria-label={`${bloomCount} flower${bloomCount === 1 ? "" : "s"} bloomed`}>
           {pastFlowers.map((f, i) => (
@@ -177,7 +187,7 @@ function GardenHero({ water, plant, isAnimating, newBloomIndex }) {
       <div className={`plant-emoji ${isAnimating ? "plant-emoji--grow" : ""}`}>
         {plant}
       </div>
-      <ProgressDots progress={progress} />
+      <ProgressDots progress={progress} poppingIndex={poppingDotIndex} />
       <p className="bloom-message">
         {dropsUntilBloom > 0
           ? `${dropsUntilBloom} drop${dropsUntilBloom === 1 ? "" : "s"} until it blooms`
@@ -213,7 +223,7 @@ function TodaySeed() {
   return (
     <div className="today-seed">
       <span className="today-seed__date">{formatTodayDate()}</span>
-      <span className="today-seed__label">Today&apos;s seed</span>
+      <span className="today-seed__label dot-label dot-label--seed">Today&apos;s seed</span>
       <p className="today-seed__prompt">{seed}</p>
     </div>
   );
@@ -224,10 +234,14 @@ function WeeklyJournalDots({ entries }) {
 
   return (
     <section className="weekly-journal" aria-label="This week's journal entries">
-      <p className="weekly-journal__label">This week</p>
+      <p className="weekly-journal__label dot-label dot-label--week">This week</p>
       <div className="weekly-journal__row">
         {weeklyStatus.map((day) => (
-          <div key={day.key} className={`weekly-journal__day${day.isToday ? " weekly-journal__day--today" : ""}`}>
+          <div
+            key={day.key}
+            className={`weekly-journal__day${day.isToday ? " weekly-journal__day--today" : ""}`}
+            aria-label={`${day.label}: ${day.filled ? "recorded" : "not recorded"}${day.isToday ? ", today" : ""}`}
+          >
             <span className="weekly-journal__day-label">{day.label}</span>
             <span
               className={`weekly-journal__dot${day.filled ? " weekly-journal__dot--filled" : ""}${
@@ -330,6 +344,7 @@ function App() {
   const currentProgress = water % BLOOM_TARGET;
   const plant = currentProgress >= 2 ? "🌿" : "🌱";
   const groupedEntries = useMemo(() => groupEntriesByDate(entries), [entries]);
+  const poppingDotIndex = isAnimating && currentProgress > 0 ? currentProgress - 1 : -1;
 
   const handleSave = async () => {
     if (!text.trim() || isSaving) return;
@@ -384,7 +399,13 @@ function App() {
         <p>Write. Reflect. Grow.</p>
       </header>
 
-      <GardenHero water={water} plant={plant} isAnimating={isAnimating} newBloomIndex={newBloomIndex} />
+      <GardenHero
+        water={water}
+        plant={plant}
+        isAnimating={isAnimating}
+        newBloomIndex={newBloomIndex}
+        poppingDotIndex={poppingDotIndex}
+      />
 
       {showBloomToast && (
         <p className="bloom-toast">A new flower bloomed! 🌸</p>
@@ -413,7 +434,7 @@ function App() {
 
       {entries.length > 0 && (
         <section className="journal-section">
-          <h2 className="section-label">Past reflections</h2>
+          <h2 className="section-label dot-label dot-label--journal">Past reflections</h2>
           <div className="journal-groups">
             {groupedEntries.map((group) => (
               <section key={group.key} className="journal-day-group">
