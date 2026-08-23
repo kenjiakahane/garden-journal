@@ -84,19 +84,30 @@ function App() {
 
   return (
     <main>
-      <h1>My Garden</h1>
+      <header>
+        <h1>Garden Journal</h1>
+        <p>Write. Reflect. Grow.</p>
+      </header>
 
       <section>
-        <h2>Garden</h2>
+        <section className="garden">
+          <h2>Garden</h2>
 
-        <div style={{ fontSize: "80px" }}>
-          {plant}
-        </div>
+          <div className="plant">
+            {plant}
+          </div>
 
-        <p>💧 Water: {water}</p>
-        <button onClick={handleResetGarden}>
-          Reset Garden
-        </button>
+          <p className="water">
+            💧 Water: {water}
+          </p>
+
+          <button
+            className="secondary"
+            onClick={handleResetGarden}
+          >
+            Reset Garden
+          </button>
+        </section>
         {lastAnalysis && (
           <div>
             {lastAnalysis.error ? (
