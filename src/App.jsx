@@ -65,6 +65,16 @@ function App() {
     );
   };
 
+  const handleResetGarden = () => {
+    const confirmed = window.confirm(
+      "Reset your garden to the beginning?"
+    );
+
+    if (!confirmed) return;
+
+    setWater(0);
+  };
+
   const plant =
     water >= 5
       ? "🌷"
@@ -84,6 +94,9 @@ function App() {
         </div>
 
         <p>💧 Water: {water}</p>
+        <button onClick={handleResetGarden}>
+          Reset Garden
+        </button>
         {lastAnalysis && (
           <div>
             {lastAnalysis.error ? (
