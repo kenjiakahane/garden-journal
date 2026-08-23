@@ -702,14 +702,14 @@ function AnalysisCard({ analysis, visible }) {
   if (!analysis || !visible) return null;
 
   const getMessage = () => {
-    if (analysis.error) return "🌙 Your reflection is safely planted.";
-    if (analysis.water <= 0) return "🌙 Your reflection is safely planted.";
+    if (analysis.error) return "💧 Your reflection has been planted.";
+    if (analysis.safetyConcern) return "🌙 Your reflection has been safely received.";
 
     if (analysis.gratitude > 0) return "🌼 Gratitude showed up in your reflection.";
     if (analysis.kindness > 0) return "🌿 A little kindness found its way into today.";
     if (analysis.reflection > 0) return "🌱 You took a moment to look inward.";
     if (analysis.growth > 0) return "🌷 There is a little growth in these words.";
-    return "💧 Your words gave water to the garden.";
+    return "💧 Your reflection has been planted.";
   };
 
   return (
@@ -914,7 +914,7 @@ function App() {
   const handleSave = async () => {
     if (!text.trim() || isSaving) return;
     setIsSaving(true);
-    setIsAnimating(true);
+    setIsAnimating(false);
     setShowAnalysis(false);
 
     const analysis = await analyzeJournal(text);
@@ -929,6 +929,7 @@ function App() {
     setEntries((current) => [newEntry, ...current]);
 
     if (analysis.water > 0) {
+      setIsAnimating(true);
       const prevBloomCount = Math.floor(water / BLOOM_TARGET);
       const nextWater = water + analysis.water;
       const nextBloomCount = Math.floor(nextWater / BLOOM_TARGET);
@@ -968,12 +969,13 @@ function App() {
     sessionStorage.removeItem("journalDraft");
     setLastAnalysis(analysis);
 
+    const revealDelay = analysis.water > 0 ? 800 : 0;
     setTimeout(() => {
       setIsAnimating(false);
       setShowAnalysis(true);
       setIsSaving(false);
       setTimeout(() => setShowAnalysis(false), 4000);
-    }, 800);
+    }, revealDelay);
   };
 
   const handleDelete = (id) => {
@@ -1037,6 +1039,7 @@ function App() {
         <section className="write-section">
           <TodaySeed />
           <WeeklyJournalDots entries={entries} />
+          <p className="water-rule-copy">Every reflection waters your garden.</p>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}

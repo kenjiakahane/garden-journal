@@ -49,25 +49,67 @@ export default function handler(req, res) {
     return source.includes(keyword);
   };
 
-  const scores = {};
+  const countCategoryScores = (source) => {
+    const scores = {};
+    for (const [category, words] of Object.entries(categories)) {
+      const matchCount = words.reduce((count, word) => {
+        return keywordMatched(source, word) ? count + 1 : count;
+      }, 0);
+      scores[category] = matchCount >= 2 ? 2 : matchCount >= 1 ? 1 : 0;
+    }
+    return scores;
+  };
 
-  for (const [category, words] of Object.entries(categories)) {
-    const matchCount = words.reduce((count, word) => {
-      return keywordMatched(normalizedText, word) ? count + 1 : count;
-    }, 0);
+  const detectSafetyConcern = (source) => {
+    // High-confidence gate: detect only explicit, immediate self-harm or severe violence intent.
+    const selfTarget = "(?:\\bi\\b|\\bi'm\\b|\\bi am\\b|\\bmyself\\b)";
+    const otherTarget = "(?:him|her|them|someone|people|person|my boss|my friend|my family)";
+    const imminent = "(?:now|right now|today|tonight|immediately|soon)";
+    const severeSelfHarmAction = "(?:kill myself|end my life|suicide|take my own life|hurt myself badly)";
+    const severeViolentAction = "(?:kill|murder|shoot|stab)";
 
-    scores[category] = matchCount >= 2 ? 2 : matchCount >= 1 ? 1 : 0;
-  }
+    const immediateSelfHarmRegexes = [
+      new RegExp(`${selfTarget}.{0,30}\\b(?:want to|going to|plan to|will)\\b.{0,20}\\b${severeSelfHarmAction}\\b`, "i"),
+      new RegExp(`\\b${severeSelfHarmAction}\\b.{0,20}\\b${imminent}\\b`, "i"),
+      /\b(?:suicide plan|plan for suicide)\b/i,
+      /\b(?:kill myself tonight|kill myself now|end my life tonight|end my life now)\b/i,
+    ];
 
-  const totalScore = Object.values(scores).reduce((sum, value) => sum + value, 0);
+    const immediateViolenceRegexes = [
+      new RegExp(`${selfTarget}.{0,30}\\b(?:want to|going to|plan to|will)\\b.{0,20}\\b${severeViolentAction}\\b.{0,24}\\b${otherTarget}\\b(?:.{0,20}\\b${imminent}\\b)?`, "i"),
+      new RegExp(`${selfTarget}.{0,30}\\b(?:want to|going to|plan to|will)\\b.{0,20}\\b${severeViolentAction}\\b.{0,20}\\b${imminent}\\b.{0,24}\\b${otherTarget}\\b`, "i"),
+      new RegExp(`\\b${severeViolentAction}\\b.{0,20}\\b${otherTarget}\\b.{0,20}\\b${imminent}\\b`, "i"),
+      /\b(?:i will hurt someone seriously)\b/i,
+    ];
 
-  const water =
-    totalScore >= 4 ? 2 :
-    totalScore >= 1 ? 1 :
-    0;
+    const japaneseHighRiskPhrases = [
+      "今すぐ自殺する",
+      "今夜自殺する",
+      "死ぬ計画",
+      "自殺する計画",
+      "今すぐ殺してやる",
+      "今夜殺してやる",
+      "刺してやる",
+    ];
+
+    const hasImmediateSelfHarm = immediateSelfHarmRegexes.some((regex) => regex.test(source));
+    const hasImmediateViolence = immediateViolenceRegexes.some((regex) => regex.test(source));
+    const hasJapaneseHighRiskPhrase = japaneseHighRiskPhrases.some((phrase) => source.includes(phrase));
+
+    return hasImmediateSelfHarm || hasImmediateViolence || hasJapaneseHighRiskPhrase;
+  };
+
+  const calculateWaterReward = ({ safetyConcern }) => (safetyConcern ? 0 : 1);
+
+  const scores = countCategoryScores(normalizedText);
+  const safetyConcern = detectSafetyConcern(normalizedText);
+  const water = calculateWaterReward({
+    safetyConcern,
+  });
 
   return res.status(200).json({
     ...scores,
+    safetyConcern,
     water,
   });
 }
