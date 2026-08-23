@@ -80,6 +80,18 @@ function formatJournalTime(createdAt) {
   });
 }
 
+function formatJournalDateTime(createdAt) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "Unknown date";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 function getWeeklyJournalStatus(entries, referenceDate = new Date()) {
   const weekDays = getWeekDays(referenceDate);
   const todayKey = getLocalDateKey(referenceDate);
@@ -232,6 +244,7 @@ function WeeklyJournalDots({ entries }) {
 function JournalEntry({ entry, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const dateTimeLabel = formatJournalDateTime(entry.createdAt);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -247,7 +260,13 @@ function JournalEntry({ entry, onDelete }) {
   return (
     <article className="journal-card">
       <div className="journal-card__header">
-        <span className="journal-card__time">{formatJournalTime(entry.createdAt)}</span>
+        <span
+          className="journal-card__time"
+          title={dateTimeLabel}
+          aria-label={dateTimeLabel}
+        >
+          {formatJournalTime(entry.createdAt)}
+        </span>
         <div className="journal-card__menu-wrap" ref={menuRef}>
           <button
             className="menu-trigger"
