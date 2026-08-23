@@ -4,7 +4,8 @@ import "./App.css";
 
 const BLOOM_TARGET = 5; // water drops needed to reach bloom; also the number of progress dots
 
-const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺", "💐"];
+const GARDEN_COLS = 16;
+const GARDEN_ROWS = 10;
 
 const DAILY_SEEDS = [
   "What made you smile today?",
@@ -32,63 +33,49 @@ const PUBLIC_GARDENS = [
     id: "aya",
     name: "Aya",
     blooms: 12,
-    plant: "🌿",
     message: "Morning light on the balcony.",
-    flowers: ["🌷    🌼", "  🌸", "🌱      🌷"],
     tone: "mint",
   },
   {
     id: "mika",
     name: "Mika",
     blooms: 8,
-    plant: "🌱",
     message: "A slow garden after rain.",
-    flowers: ["🌻   🌷", "   🌺", "🌼      🌿"],
     tone: "cream",
   },
   {
     id: "leo",
     name: "Leo",
     blooms: 4,
-    plant: "🌱",
     message: "New sprouts near the window.",
-    flowers: ["🌱  🌿", "   🌷", "🌼"],
     tone: "yellow",
   },
   {
     id: "hana",
     name: "Hana",
     blooms: 10,
-    plant: "🌿",
     message: "Tiny blooms, gentle breeze.",
-    flowers: ["🌸    🌷", "  🌼  🌱", "     🌺"],
     tone: "pink",
   },
   {
     id: "sora",
     name: "Sora",
     blooms: 6,
-    plant: "🌱",
     message: "Quiet greens this week.",
-    flowers: ["🌿     🌷", "  🌼", "🌱   🌱"],
     tone: "mint",
   },
   {
     id: "nina",
     name: "Nina",
     blooms: 9,
-    plant: "🌿",
     message: "Soft colors in the afternoon.",
-    flowers: ["🌺   🌸", "   🌷", "🌼      🌱"],
     tone: "cream",
   },
   {
     id: "rui",
     name: "Rui",
     blooms: 7,
-    plant: "🌱",
     message: "A tiny corner keeps growing.",
-    flowers: ["🌷   🌻", "  🌱", "🌼    🌿"],
     tone: "pink",
   },
 ];
@@ -100,8 +87,165 @@ function getDailySeed() {
   return DAILY_SEEDS[dayIndex % DAILY_SEEDS.length];
 }
 
-function getPastFlowers(bloomCount) {
-  return Array.from({ length: bloomCount }, (_, i) => FLOWER_CYCLE[i % FLOWER_CYCLE.length]);
+function hashSeed(seed) {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash ^= seed.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return Math.abs(hash >>> 0);
+}
+
+function seededShuffle(items, seed) {
+  const next = [...items];
+  let state = seed || 1;
+  const random = () => {
+    state += 0x6d2b79f5;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
+
+function getGardenStageFlowerCount(bloomCount) {
+  if (bloomCount <= 0) return 0;
+  if (bloomCount === 1) return 1;
+  if (bloomCount === 2) return 2;
+  if (bloomCount === 3) return 4;
+  if (bloomCount === 4) return 5;
+  if (bloomCount <= 7) return 7;
+  return 9;
+}
+
+function buildGardenScene({ bloomCount, progress, seed }) {
+  const flowerSpots = seededShuffle(
+    [
+      { x: 5, y: 3 },
+      { x: 9, y: 3 },
+      { x: 7, y: 4 },
+      { x: 10, y: 5 },
+      { x: 6, y: 5 },
+      { x: 8, y: 6 },
+      { x: 4, y: 4 },
+      { x: 11, y: 4 },
+      { x: 6, y: 2 },
+      { x: 9, y: 6 },
+    ],
+    hashSeed(seed),
+  );
+
+  const flowerCount = Math.min(getGardenStageFlowerCount(bloomCount), flowerSpots.length);
+  const flowers = flowerSpots.slice(0, flowerCount).map((spot, index) => ({
+    ...spot,
+    index,
+    palette: index % 4,
+  }));
+  const usedSpots = new Set(flowers.map((spot) => `${spot.x},${spot.y}`));
+  const nextSproutSpot = flowerSpots.find((spot) => !usedSpots.has(`${spot.x},${spot.y}`)) || { x: 7, y: 5 };
+
+  const stones = [];
+  if (bloomCount >= 2) stones.push({ x: 3, y: 7 });
+  if (bloomCount >= 4) stones.push({ x: 12, y: 7 });
+  if (bloomCount >= 7) stones.push({ x: 11, y: 2 });
+
+  const pathTiles = bloomCount >= 5
+    ? [{ x: 6, y: 7 }, { x: 7, y: 7 }, { x: 8, y: 7 }, { x: 9, y: 7 }]
+    : [];
+  const bush = bloomCount >= 8 ? { x: 4, y: 2 } : null;
+  const sprout = progress > 0 || bloomCount === 0 ? nextSproutSpot : null;
+
+  return { flowers, stones, pathTiles, bush, sprout };
+}
+
+function summarizeGarden({ bloomCount, progress, hasSprout }) {
+  const bloomsText = `${bloomCount} bloom${bloomCount === 1 ? "" : "s"}`;
+  if (hasSprout) {
+    const sproutStage = progress >= 3 ? "a growing sprout" : "a tiny sprout";
+    return `Your garden has ${bloomsText} and ${sproutStage}.`;
+  }
+  return `Your garden has ${bloomsText}.`;
+}
+
+function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint", highlightFlowerIndex = null }) {
+  const scene = useMemo(
+    () => buildGardenScene({ bloomCount, progress, seed }),
+    [bloomCount, progress, seed],
+  );
+  const summary = summarizeGarden({
+    bloomCount,
+    progress,
+    hasSprout: Boolean(scene.sprout),
+  });
+
+  return (
+    <figure
+      className={`pixel-garden${compact ? " pixel-garden--compact" : ""} pixel-garden--${tone}`}
+      role="img"
+      aria-label={summary}
+    >
+      <div
+        className="pixel-garden__grid"
+        style={{
+          gridTemplateColumns: `repeat(${GARDEN_COLS}, 1fr)`,
+          gridTemplateRows: `repeat(${GARDEN_ROWS}, 1fr)`,
+        }}
+        aria-hidden="true"
+      >
+        {Array.from({ length: GARDEN_COLS * GARDEN_ROWS }, (_, i) => {
+          const x = i % GARDEN_COLS;
+          const y = Math.floor(i / GARDEN_COLS);
+          const isSoil = x >= 3 && x <= 12 && y >= 2 && y <= 7;
+          const isPath = scene.pathTiles.some((tile) => tile.x === x && tile.y === y);
+          const tileClass = isPath ? "tile tile--path" : isSoil ? "tile tile--soil" : "tile tile--grass";
+
+          return <span key={`tile-${x}-${y}`} className={tileClass} />;
+        })}
+        {scene.pathTiles.map((tile) => (
+          <span
+            key={`path-edge-${tile.x}-${tile.y}`}
+            className="pixel-item pixel-item--path-edge"
+            style={{ gridColumn: tile.x + 1, gridRow: tile.y + 1 }}
+          />
+        ))}
+        {scene.stones.map((stone) => (
+          <span
+            key={`stone-${stone.x}-${stone.y}`}
+            className="pixel-item pixel-item--stone"
+            style={{ gridColumn: stone.x + 1, gridRow: stone.y + 1 }}
+          />
+        ))}
+        {scene.flowers.map((flower) => (
+          <span
+            key={`flower-${flower.x}-${flower.y}`}
+            className={`pixel-item pixel-item--flower pixel-item--flower-${flower.palette}${
+              flower.index === highlightFlowerIndex ? " pixel-item--flower-new" : ""
+            }`}
+            style={{ gridColumn: flower.x + 1, gridRow: flower.y + 1 }}
+          />
+        ))}
+        {scene.sprout && (
+          <span
+            className="pixel-item pixel-item--sprout"
+            style={{ gridColumn: scene.sprout.x + 1, gridRow: scene.sprout.y + 1 }}
+          />
+        )}
+        {scene.bush && (
+          <span
+            className="pixel-item pixel-item--bush"
+            style={{ gridColumn: scene.bush.x + 1, gridRow: scene.bush.y + 1 }}
+          />
+        )}
+      </div>
+    </figure>
+  );
 }
 
 function getLocalDateKey(date) {
@@ -226,12 +370,11 @@ function ProgressDots({ progress, poppingIndex }) {
   );
 }
 
-function GardenHero({ water, plant, isAnimating, newBloomIndex, poppingDotIndex }) {
+function GardenHero({ water, newBloomIndex, poppingDotIndex }) {
   const bloomCount = Math.floor(water / BLOOM_TARGET);
   const progress = water % BLOOM_TARGET;
   const justBloomed = water > 0 && progress === 0;
   const dropsUntilBloom = justBloomed ? 0 : BLOOM_TARGET - progress;
-  const pastFlowers = getPastFlowers(bloomCount);
 
   return (
     <section className="hero-section">
@@ -242,21 +385,12 @@ function GardenHero({ water, plant, isAnimating, newBloomIndex, poppingDotIndex 
         <span className="hero-dot hero-dot--4" />
         <span className="hero-dot hero-dot--5" />
       </div>
-      {pastFlowers.length > 0 && (
-        <div className="past-flowers" aria-label={`${bloomCount} flower${bloomCount === 1 ? "" : "s"} bloomed`}>
-          {pastFlowers.map((f, i) => (
-            <span
-              key={i}
-              className={`past-flower${i === newBloomIndex ? " past-flower--new" : ""}`}
-            >
-              {f}
-            </span>
-          ))}
-        </div>
-      )}
-      <div className={`plant-emoji ${isAnimating ? "plant-emoji--grow" : ""}`}>
-        {plant}
-      </div>
+      <PixelGarden
+        bloomCount={bloomCount}
+        progress={progress}
+        seed="journal-garden"
+        highlightFlowerIndex={newBloomIndex}
+      />
       <ProgressDots progress={progress} poppingIndex={poppingDotIndex} />
       <p className="bloom-message">
         {dropsUntilBloom > 0
@@ -388,16 +522,18 @@ function ExploreGardenCard({ garden }) {
       aria-label={`${garden.name}'s Garden, ${garden.blooms} blooms`}
     >
       <h3 className="public-garden-card__title">{garden.name}&apos;s Garden</h3>
-      <div className="public-garden-card__scene" aria-hidden="true">
-        {garden.flowers.map((row, index) => (
-          <p key={`${garden.id}-${index}`} className="public-garden-card__row">
-            {row}
-          </p>
-        ))}
+      <div className="public-garden-card__scene">
+        <PixelGarden
+          bloomCount={garden.blooms}
+          progress={garden.blooms % BLOOM_TARGET}
+          seed={`explore-${garden.id}`}
+          compact
+          tone={garden.tone}
+        />
       </div>
       {garden.message && <p className="public-garden-card__message">{garden.message}</p>}
       <p className="public-garden-card__meta">
-        <span aria-hidden="true">{garden.plant}</span> {garden.blooms} blooms
+        {garden.blooms} blooms
       </p>
     </article>
   );
@@ -435,7 +571,6 @@ function App() {
   }, [newBloomIndex]);
 
   const currentProgress = water % BLOOM_TARGET;
-  const plant = currentProgress >= 2 ? "🌿" : "🌱";
   const groupedEntries = useMemo(() => groupEntriesByDate(entries), [entries]);
   const poppingDotIndex = isAnimating && water > 0
     ? (currentProgress === 0 ? BLOOM_TARGET - 1 : currentProgress - 1)
@@ -528,8 +663,6 @@ function App() {
         <h2 className="sr-only">Journal</h2>
         <GardenHero
           water={water}
-          plant={plant}
-          isAnimating={isAnimating}
           newBloomIndex={newBloomIndex}
           poppingDotIndex={poppingDotIndex}
         />
