@@ -323,8 +323,8 @@ header p {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  grid-template-rows: repeat(6, 1fr);
+  grid-template-columns: repeat(var(--garden-cols, 9), 1fr);
+  grid-template-rows: repeat(var(--garden-rows, 6), 1fr);
 }
 
 .garden-planting-cell {

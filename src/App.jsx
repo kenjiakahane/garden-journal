@@ -356,16 +356,17 @@ function PixelGarden({
   onPlantSprout = null,
   newlyPlantedCycle = null,
 }) {
+  const gardenSeed = seed || "journal-garden";
   const scene = useMemo(
     () => (plants
       ? buildJournalGardenScene({ bloomCount, progress, plants, pendingSproutCycle })
-      : buildExploreGardenScene({ bloomCount, progress, seed })),
-    [bloomCount, progress, plants, pendingSproutCycle, seed],
+      : buildExploreGardenScene({ bloomCount, progress, seed: gardenSeed })),
+    [bloomCount, progress, plants, pendingSproutCycle, gardenSeed],
   );
   const plantingMode = Boolean(plants && onPlantSprout && scene.canPlant);
   const occupiedCellSet = useMemo(
     () => new Set([
-      ...scene.plants.map((plant) => toCellKey(plant.x, plant.y)),
+      ...(scene.plants || []).map((plant) => toCellKey(plant.x, plant.y)),
       ...scene.stones.map((stone) => toCellKey(stone.x, stone.y)),
       ...(scene.bush ? [toCellKey(scene.bush.x, scene.bush.y)] : []),
     ]),
@@ -438,7 +439,7 @@ function PixelGarden({
               gridColumn: flower.x + 1,
               gridRow: flower.y + 1,
               fontSize: getEmojiSize(flower.y, compact),
-              transform: `translate(${emojiOffset(flower.x, flower.y, seed, "x")}%, ${emojiOffset(flower.x, flower.y, seed, "y")}%)`,
+              transform: `translate(${emojiOffset(flower.x, flower.y, gardenSeed, "x")}%, ${emojiOffset(flower.x, flower.y, gardenSeed, "y")}%)`,
             }}
           >
             {flower.emoji}
@@ -452,7 +453,7 @@ function PixelGarden({
               gridColumn: scene.sprout.x + 1,
               gridRow: scene.sprout.y + 1,
               fontSize: getEmojiSize(scene.sprout.y, compact),
-              transform: `translate(${emojiOffset(scene.sprout.x, scene.sprout.y, seed, "x")}%, ${emojiOffset(scene.sprout.x, scene.sprout.y, seed, "y")}%)`,
+              transform: `translate(${emojiOffset(scene.sprout.x, scene.sprout.y, gardenSeed, "x")}%, ${emojiOffset(scene.sprout.x, scene.sprout.y, gardenSeed, "y")}%)`,
             }}
           >
             🌱
@@ -467,7 +468,7 @@ function PixelGarden({
               gridColumn: plant.x + 1,
               gridRow: plant.y + 1,
               fontSize: getEmojiSize(plant.y, compact),
-              transform: `translate(${emojiOffset(plant.x, plant.y, seed, "x")}%, ${emojiOffset(plant.x, plant.y, seed, "y")}%)`,
+              transform: `translate(${emojiOffset(plant.x, plant.y, gardenSeed, "x")}%, ${emojiOffset(plant.x, plant.y, gardenSeed, "y")}%)`,
             }}
           >
             {plant.emoji}
@@ -481,14 +482,22 @@ function PixelGarden({
               gridColumn: scene.bush.x + 1,
               gridRow: scene.bush.y + 1,
               fontSize: getEmojiSize(scene.bush.y, compact),
-              transform: `translate(${emojiOffset(scene.bush.x, scene.bush.y, seed, "x")}%, ${emojiOffset(scene.bush.x, scene.bush.y, seed, "y")}%)`,
+              transform: `translate(${emojiOffset(scene.bush.x, scene.bush.y, gardenSeed, "x")}%, ${emojiOffset(scene.bush.x, scene.bush.y, gardenSeed, "y")}%)`,
             }}
           >
             🌿
           </span>
         )}
         {plantingMode && (
-          <div className="garden-planting-layer" role="group" aria-label="Select where to plant your sprout">
+          <div
+            className="garden-planting-layer"
+            role="group"
+            aria-label="Select where to plant your sprout"
+            style={{
+              "--garden-cols": GARDEN_COLS,
+              "--garden-rows": GARDEN_ROWS,
+            }}
+          >
             {allCells.map((cell) => {
               const occupied = occupiedCellSet.has(toCellKey(cell.x, cell.y)) || pathCellSet.has(toCellKey(cell.x, cell.y));
               return (
@@ -501,7 +510,7 @@ function PixelGarden({
                     onPlantSprout(cell.x, cell.y);
                   }}
                   disabled={occupied}
-                  aria-label={`Plant sprout at garden position ${cell.y + 1}, ${cell.x + 1}`}
+                  aria-label={`Plant sprout at row ${cell.y + 1}, column ${cell.x + 1}`}
                   style={{
                     gridColumn: cell.x + 1,
                     gridRow: cell.y + 1,
@@ -875,37 +884,31 @@ function App() {
     : -1;
 
   const handlePlantSprout = (x, y) => {
-    let plantedCycle = null;
-    setGardenState((current) => {
-      if (current.pendingSproutCycle === null) return current;
-      const activeScene = buildJournalGardenScene({
-        bloomCount: Math.floor(water / BLOOM_TARGET),
-        progress: water % BLOOM_TARGET,
-        plants: current.plants,
-        pendingSproutCycle: current.pendingSproutCycle,
-      });
-      const canPlant = activeScene.emptyCells.some((cell) => cell.x === x && cell.y === y);
-      if (!canPlant) return current;
-      const cycle = current.pendingSproutCycle;
-      plantedCycle = cycle;
-      return {
-        plants: [
-          ...current.plants,
-          {
-            id: `plant-${cycle}`,
-            cycle,
-            x,
-            y,
-            flowerType: FLOWER_CYCLE[cycle % FLOWER_CYCLE.length],
-          },
-        ],
-        pendingSproutCycle: null,
-      };
+    if (gardenState.pendingSproutCycle === null) return;
+    const activeScene = buildJournalGardenScene({
+      bloomCount: Math.floor(water / BLOOM_TARGET),
+      progress: water % BLOOM_TARGET,
+      plants: gardenState.plants,
+      pendingSproutCycle: gardenState.pendingSproutCycle,
     });
-    if (plantedCycle !== null) {
-      setNewlyPlantedCycle(plantedCycle);
-      setIsGardenFull(false);
-    }
+    const canPlant = activeScene.emptyCells.some((cell) => cell.x === x && cell.y === y);
+    if (!canPlant) return;
+    const cycle = gardenState.pendingSproutCycle;
+    setGardenState({
+      plants: [
+        ...gardenState.plants,
+        {
+          id: `plant-${cycle}`,
+          cycle,
+          x,
+          y,
+          flowerType: FLOWER_CYCLE[cycle % FLOWER_CYCLE.length],
+        },
+      ],
+      pendingSproutCycle: null,
+    });
+    setNewlyPlantedCycle(cycle);
+    setIsGardenFull(false);
   };
 
   const handleSave = async () => {
@@ -926,37 +929,39 @@ function App() {
     setEntries((current) => [newEntry, ...current]);
 
     if (analysis.water > 0) {
-      setWater((current) => {
-        const prevBloomCount = Math.floor(current / BLOOM_TARGET);
-        const nextWater = current + analysis.water;
-        const nextBloomCount = Math.floor(nextWater / BLOOM_TARGET);
-        if (nextBloomCount > prevBloomCount) {
-          setNewBloomIndex(nextBloomCount - 1);
-          setShowBloomToast(true);
-          setGardenState((currentGardenState) => {
-            if (currentGardenState.pendingSproutCycle !== null) return currentGardenState;
-            const nextCycle = nextBloomCount;
-            if (currentGardenState.plants.some((plant) => plant.cycle === nextCycle)) {
-              setIsGardenFull(false);
-              return currentGardenState;
-            }
+      const prevBloomCount = Math.floor(water / BLOOM_TARGET);
+      const nextWater = water + analysis.water;
+      const nextBloomCount = Math.floor(nextWater / BLOOM_TARGET);
+      setWater(nextWater);
+      if (nextBloomCount > prevBloomCount) {
+        setNewBloomIndex(nextBloomCount - 1);
+        setShowBloomToast(true);
+        if (gardenState.pendingSproutCycle === null) {
+          const nextCycle = nextBloomCount;
+          if (!gardenState.plants.some((plant) => plant.cycle === nextCycle)) {
             const nextScene = buildJournalGardenScene({
               bloomCount: nextBloomCount,
               progress: nextWater % BLOOM_TARGET,
-              plants: currentGardenState.plants,
+              plants: gardenState.plants,
               pendingSproutCycle: nextCycle,
             });
             const hasOpenSpot = nextScene.emptyCells.length > 0;
             setIsGardenFull(!hasOpenSpot);
-            if (!hasOpenSpot) return currentGardenState;
-            return {
-              ...currentGardenState,
-              pendingSproutCycle: nextCycle,
-            };
-          });
+            if (hasOpenSpot) {
+              setGardenState((previous) => {
+                if (previous.pendingSproutCycle !== null) return previous;
+                if (previous.plants.some((plant) => plant.cycle === nextCycle)) return previous;
+                return {
+                  ...previous,
+                  pendingSproutCycle: nextCycle,
+                };
+              });
+            }
+          } else {
+            setIsGardenFull(false);
+          }
         }
-        return nextWater;
-      });
+      }
     }
 
     setText("");
