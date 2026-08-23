@@ -189,8 +189,8 @@ header p {
   /* Muted, earthy palette — less saturated, more natural */
   --scene-grass-a: #8fad89;
   --scene-grass-b: #839f7e;
-  --scene-soil-a: #a8845e;
-  --scene-soil-b: #9a7650;
+  --scene-soil-a: #b89870;
+  --scene-soil-b: #aa8a62;
   --scene-path-a: #c9bda8;
   --scene-path-b: #bdb09a;
   /* Dusty, desaturated flower tones */
@@ -273,152 +273,28 @@ header p {
   background: var(--scene-path-a);
 }
 
-/* ── Object Base ───────────────────────────────────── */
-.pixel-item {
-  justify-self: stretch;
-  align-self: stretch;
-  position: relative;
+/* ── Garden Emoji Objects ──────────────────────────── */
+.garden-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
 }
 
-/* ── Stone ─────────────────────────────────────────── */
-/* Oval boulder: smooth gradient for 3-D feel */
-.pixel-item--stone {
-  margin: 12% 14%;
-  border-radius: 45% 45% 40% 40% / 50% 50% 40% 40%;
-  background: radial-gradient(
-    ellipse 60% 55% at 38% 35%,
-    var(--scene-stone-hi) 0%,
-    var(--scene-stone) 55%,
-    #636360 100%
-  );
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255,255,255,0.18);
+.garden-emoji--new {
+  transform-origin: 50% 90%;
+  animation: emojiBloomPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ── Sprout ─────────────────────────────────────────── */
-/* Tapered stem + two organic leaves */
-.pixel-item--sprout {
-  margin: 6%;
-  background:
-    linear-gradient(90deg,
-      transparent 0 44%,
-      var(--scene-stem) 44% 56%,
-      transparent 56% 100%
-    );
-  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15));
-}
-
-.pixel-item--sprout::before {
-  content: "";
-  position: absolute;
-  left: 5%;
-  top: 24%;
-  width: 38%;
-  height: 34%;
-  background: var(--scene-leaf-a);
-  border-radius: 80% 10% 80% 10%;
-  transform: rotate(-28deg);
-}
-
-.pixel-item--sprout::after {
-  content: "";
-  position: absolute;
-  right: 5%;
-  top: 24%;
-  width: 38%;
-  height: 34%;
-  background: var(--scene-leaf-b);
-  border-radius: 10% 80% 10% 80%;
-  transform: rotate(28deg);
-}
-
-/* ── Flower ─────────────────────────────────────────── */
-/* Stem + two leaves + round bloom with soft centre */
-.pixel-item--flower {
-  position: relative;
-  margin: 4%;
-  background:
-    linear-gradient(90deg,
-      transparent 0 44%,
-      var(--scene-stem) 44% 56%,
-      transparent 56% 100%
-    );
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.14));
-}
-
-/* leaves */
-.pixel-item--flower::before {
-  content: "";
-  position: absolute;
-  left: 5%;
-  top: 54%;
-  width: 34%;
-  height: 26%;
-  background: var(--scene-leaf-a);
-  border-radius: 80% 10% 80% 10%;
-  transform: rotate(-22deg);
-  box-shadow: 52% 2% 0 0 var(--scene-leaf-b);
-}
-
-/* bloom — smooth radial gradient gives soft depth */
-.pixel-item--flower::after {
-  content: "";
-  position: absolute;
-  left: 12%;
-  right: 12%;
-  top: 4%;
-  height: 50%;
-  background: radial-gradient(
-    ellipse 56% 62% at 44% 42%,
-    var(--flower-center, var(--scene-flower-center)) 0%,
-    var(--flower-color) 42%,
-    var(--flower-rim, var(--flower-color)) 100%
-  );
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.16);
-}
-
-.pixel-item--flower-0 {
-  --flower-color: var(--scene-flower-a);
-  --flower-rim: #b08890;
-}
-.pixel-item--flower-1 {
-  --flower-color: var(--scene-flower-b);
-  --flower-rim: #a0905a;
-}
-.pixel-item--flower-2 {
-  --flower-color: var(--scene-flower-c);
-  --flower-rim: #756d98;
-}
-.pixel-item--flower-3 {
-  --flower-color: var(--scene-flower-d);
-  --flower-rim: #9e8060;
-}
-
-.pixel-item--flower-new {
-  transform-origin: 50% 92%;
-  animation: pixelBloomPop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* ── Bush ──────────────────────────────────────────── */
-.pixel-item--bush {
-  margin: 8%;
-  border-radius: 50% 50% 38% 38% / 55% 55% 38% 38%;
-  background: radial-gradient(
-    ellipse 62% 58% at 40% 38%,
-    var(--scene-bush-hi) 0%,
-    var(--scene-bush) 52%,
-    var(--scene-bush-dark) 100%
-  );
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255,255,255,0.12);
-}
-
-@keyframes pixelBloomPop {
+@keyframes emojiBloomPop {
   0% {
     transform: scale(0);
     opacity: 0.6;
   }
   60% {
-    transform: scale(1.12);
+    transform: scale(1.2);
     opacity: 1;
   }
   100% {
@@ -827,7 +703,9 @@ textarea:focus {
 
 .public-garden-card__scene {
   margin: 16px 0 12px;
-  min-height: 160px;
+  min-height: 180px;
+  display: flex;
+  justify-content: center;
 }
 
 .public-garden-card__message {

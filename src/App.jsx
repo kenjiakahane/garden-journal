@@ -23,6 +23,7 @@ const DAILY_SEEDS = [
 ];
 
 const WEEKDAY_LABELS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺"];
 const TABS = {
   JOURNAL: "journal",
   EXPLORE: "explore",
@@ -115,6 +116,14 @@ function seededShuffle(items, seed) {
   return next;
 }
 
+function isSoilTile(x, y) {
+  // Left bed: cols 1–4, rows 2–4
+  if (x >= 1 && x <= 4 && y >= 2 && y <= 4) return true;
+  // Right bed: cols 5–7, rows 1–3
+  if (x >= 5 && x <= 7 && y >= 1 && y <= 3) return true;
+  return false;
+}
+
 function getGardenStageFlowerCount(bloomCount) {
   if (bloomCount <= 0) return 0;
   if (bloomCount === 1) return 1;
@@ -128,14 +137,14 @@ function getGardenStageFlowerCount(bloomCount) {
 function buildGardenScene({ bloomCount, progress, seed }) {
   const flowerSpots = seededShuffle(
     [
-      { x: 2, y: 1 },
+      { x: 2, y: 2 },
       { x: 5, y: 1 },
       { x: 7, y: 2 },
       { x: 3, y: 3 },
       { x: 6, y: 3 },
       { x: 1, y: 3 },
       { x: 4, y: 2 },
-      { x: 7, y: 4 },
+      { x: 6, y: 1 },
       { x: 2, y: 4 },
       { x: 5, y: 3 },
     ],
@@ -146,7 +155,7 @@ function buildGardenScene({ bloomCount, progress, seed }) {
   const flowers = flowerSpots.slice(0, flowerCount).map((spot, index) => ({
     ...spot,
     index,
-    palette: index % 4,
+    emoji: FLOWER_CYCLE[index % FLOWER_CYCLE.length],
   }));
   const usedSpots = new Set(flowers.map((spot) => `${spot.x},${spot.y}`));
   const nextSproutSpot = flowerSpots.find((spot) => !usedSpots.has(`${spot.x},${spot.y}`)) || { x: 4, y: 3 };
@@ -172,6 +181,24 @@ function summarizeGarden({ bloomCount, progress, hasSprout }) {
     return `Your garden has ${bloomsText} and ${sproutStage}.`;
   }
   return `Your garden has ${bloomsText}.`;
+}
+
+function getEmojiSize(y, compact) {
+  if (compact) {
+    if (y <= 1) return "22px";
+    if (y <= 2) return "25px";
+    if (y <= 3) return "28px";
+    return "30px";
+  }
+  if (y <= 1) return "28px";
+  if (y <= 2) return "32px";
+  if (y <= 3) return "36px";
+  return "40px";
+}
+
+function emojiOffset(x, y, seed, axis) {
+  const n = hashSeed(`${x}:${y}:${axis}:${seed}`);
+  return (n % 21) - 10; // −10 % to +10 % of the cell
 }
 
 function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint", highlightFlowerIndex = null }) {
@@ -202,7 +229,7 @@ function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint
         {Array.from({ length: GARDEN_COLS * GARDEN_ROWS }, (_, i) => {
           const x = i % GARDEN_COLS;
           const y = Math.floor(i / GARDEN_COLS);
-          const isSoil = x >= 1 && x <= 7 && y >= 1 && y <= 4;
+          const isSoil = isSoilTile(x, y);
           const isPath = scene.pathTiles.some((tile) => tile.x === x && tile.y === y);
           const tileClass = isPath ? "tile tile--path" : isSoil ? "tile tile--soil" : "tile tile--grass";
 
@@ -211,30 +238,56 @@ function PixelGarden({ bloomCount, progress, seed, compact = false, tone = "mint
         {scene.stones.map((stone) => (
           <span
             key={`stone-${stone.x}-${stone.y}`}
-            className="pixel-item pixel-item--stone"
-            style={{ gridColumn: stone.x + 1, gridRow: stone.y + 1 }}
-          />
+            className="garden-emoji"
+            style={{
+              gridColumn: stone.x + 1,
+              gridRow: stone.y + 1,
+              fontSize: getEmojiSize(stone.y, compact),
+              transform: `translate(${emojiOffset(stone.x, stone.y, seed, "x")}%, ${emojiOffset(stone.x, stone.y, seed, "y")}%)`,
+            }}
+          >
+            🪨
+          </span>
         ))}
         {scene.flowers.map((flower) => (
           <span
             key={`flower-${flower.x}-${flower.y}`}
-            className={`pixel-item pixel-item--flower pixel-item--flower-${flower.palette}${
-              flower.index === highlightFlowerIndex ? " pixel-item--flower-new" : ""
-            }`}
-            style={{ gridColumn: flower.x + 1, gridRow: flower.y + 1 }}
-          />
+            className={`garden-emoji${flower.index === highlightFlowerIndex ? " garden-emoji--new" : ""}`}
+            style={{
+              gridColumn: flower.x + 1,
+              gridRow: flower.y + 1,
+              fontSize: getEmojiSize(flower.y, compact),
+              transform: `translate(${emojiOffset(flower.x, flower.y, seed, "x")}%, ${emojiOffset(flower.x, flower.y, seed, "y")}%)`,
+            }}
+          >
+            {flower.emoji}
+          </span>
         ))}
         {scene.sprout && (
           <span
-            className="pixel-item pixel-item--sprout"
-            style={{ gridColumn: scene.sprout.x + 1, gridRow: scene.sprout.y + 1 }}
-          />
+            className="garden-emoji"
+            style={{
+              gridColumn: scene.sprout.x + 1,
+              gridRow: scene.sprout.y + 1,
+              fontSize: getEmojiSize(scene.sprout.y, compact),
+              transform: `translate(${emojiOffset(scene.sprout.x, scene.sprout.y, seed, "x")}%, ${emojiOffset(scene.sprout.x, scene.sprout.y, seed, "y")}%)`,
+            }}
+          >
+            🌱
+          </span>
         )}
         {scene.bush && (
           <span
-            className="pixel-item pixel-item--bush"
-            style={{ gridColumn: scene.bush.x + 1, gridRow: scene.bush.y + 1 }}
-          />
+            className="garden-emoji"
+            style={{
+              gridColumn: scene.bush.x + 1,
+              gridRow: scene.bush.y + 1,
+              fontSize: getEmojiSize(scene.bush.y, compact),
+              transform: `translate(${emojiOffset(scene.bush.x, scene.bush.y, seed, "x")}%, ${emojiOffset(scene.bush.x, scene.bush.y, seed, "y")}%)`,
+            }}
+          >
+            🌿
+          </span>
         )}
       </div>
     </figure>
