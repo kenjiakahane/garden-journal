@@ -4,26 +4,42 @@ import "./App.css";
 
 const BLOOM_TARGET = 5; // water drops needed to reach bloom; also the number of progress dots
 
-function ProgressDots({ water }) {
-  const filled = Math.min(Math.round((water / BLOOM_TARGET) * BLOOM_TARGET), BLOOM_TARGET);
+const FLOWER_CYCLE = ["🌷", "🌼", "🌸", "🌻", "🌺", "💐"];
+
+function getPastFlowers(bloomCount) {
+  return Array.from({ length: bloomCount }, (_, i) => FLOWER_CYCLE[i % FLOWER_CYCLE.length]);
+}
+
+function ProgressDots({ progress }) {
   return (
-    <div className="progress-dots" aria-label={`${filled} of ${BLOOM_TARGET} drops`}>
+    <div className="progress-dots" aria-label={`${progress} of ${BLOOM_TARGET} drops`}>
       {Array.from({ length: BLOOM_TARGET }, (_, i) => (
-        <span key={i} className={i < filled ? "dot dot--filled" : "dot"} />
+        <span key={i} className={i < progress ? "dot dot--filled" : "dot"} />
       ))}
     </div>
   );
 }
 
 function GardenHero({ water, plant, isAnimating }) {
-  const dropsUntilBloom = Math.max(BLOOM_TARGET - water, 0);
+  const bloomCount = Math.floor(water / BLOOM_TARGET);
+  const progress = water % BLOOM_TARGET;
+  const justBloomed = water > 0 && progress === 0;
+  const dropsUntilBloom = justBloomed ? 0 : BLOOM_TARGET - progress;
+  const pastFlowers = getPastFlowers(bloomCount);
 
   return (
     <section className="hero-section">
+      {pastFlowers.length > 0 && (
+        <div className="past-flowers" aria-label={`${bloomCount} flower${bloomCount === 1 ? "" : "s"} bloomed`}>
+          {pastFlowers.map((f, i) => (
+            <span key={i} className="past-flower">{f}</span>
+          ))}
+        </div>
+      )}
       <div className={`plant-emoji ${isAnimating ? "plant-emoji--grow" : ""}`}>
         {plant}
       </div>
-      <ProgressDots water={water} />
+      <ProgressDots progress={progress} />
       <p className="bloom-message">
         {dropsUntilBloom > 0
           ? `${dropsUntilBloom} drop${dropsUntilBloom === 1 ? "" : "s"} until it blooms`
@@ -136,7 +152,8 @@ function App() {
   useEffect(() => { localStorage.setItem("journalEntries", JSON.stringify(entries)); }, [entries]);
   useEffect(() => { localStorage.setItem("water", water); }, [water]);
 
-  const plant = water >= 5 ? "🌷" : water >= 2 ? "🌿" : "🌱";
+  const currentProgress = water % BLOOM_TARGET;
+  const plant = currentProgress >= 2 ? "🌿" : "🌱";
 
   const handleSave = async () => {
     if (!text.trim() || isSaving) return;
