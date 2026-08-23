@@ -65,12 +65,14 @@ function formatTodayDate(referenceDate = new Date()) {
 
 function formatJournalDateHeading(createdAt) {
   const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "Unknown day";
   const month = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
   return `${month} ${date.getDate()}`;
 }
 
 function formatJournalTime(createdAt) {
   const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "--:--";
   return date.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",

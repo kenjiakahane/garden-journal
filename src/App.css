@@ -18,6 +18,10 @@
   --week-dot-filled: #7CA683;
   --week-dot-today: #4E7B55;
   --journal-day-heading: #54685A;
+  --journal-time: #90968F;
+  --today-seed-date: #6D756E;
+  --weekly-day-label: #97A097;
+  --weekly-day-label-today: #66736A;
   --focus-ring:   #7CB880;
   --shadow-card:  0 2px 12px rgba(0,0,0,0.06);
   --shadow-hero:  0 4px 20px rgba(0,0,0,0.06);
@@ -303,7 +307,7 @@ textarea:focus {
 .journal-card__time {
   font-size: 12px;
   font-weight: 500;
-  color: #90968f;
+  color: var(--journal-time);
   letter-spacing: 0.03em;
 }
 
@@ -393,7 +397,7 @@ textarea:focus {
   display: block;
   font-size: 12px;
   font-weight: 500;
-  color: #6d756e;
+  color: var(--today-seed-date);
   margin-bottom: 6px;
 }
 
@@ -444,7 +448,7 @@ textarea:focus {
 
 .weekly-journal__day-label {
   font-size: 10px;
-  color: #97a097;
+  color: var(--weekly-day-label);
   letter-spacing: 0.03em;
 }
 
@@ -460,7 +464,7 @@ textarea:focus {
 }
 
 .weekly-journal__day--today .weekly-journal__day-label {
-  color: #66736a;
+  color: var(--weekly-day-label-today);
 }
 
 .weekly-journal__dot--today {
